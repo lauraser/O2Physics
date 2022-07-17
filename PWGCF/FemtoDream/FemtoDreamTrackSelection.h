@@ -193,7 +193,6 @@ class FemtoDreamTrackSelection : public FemtoDreamObjectSelection<float, femtoDr
     return nSigmaPIDMax;
   }
 
-
  private:
   int nPtMinSel;
   int nPtMaxSel;
@@ -413,13 +412,13 @@ bool FemtoDreamTrackSelection::isSelectedMinimal(T const& track)
   if (nDCAzMaxSel > 0 && std::abs(dcaZ) > dcaZMax) {
     return false;
   }
- if (nDCAMinSel > 0 && std::abs(dca) < dcaMin) {
+  if (nDCAMinSel > 0 && std::abs(dca) < dcaMin) {
     return false;
   }
-  if ( std::abs(dca) > 1e3) {
+  if (std::abs(dca) > 1e3) {
     return false;
   }
-  
+
   if (nPIDnSigmaSel > 0) {
     bool isFulfilled = false;
     for (size_t i = 0; i < pidTPC.size(); ++i) {

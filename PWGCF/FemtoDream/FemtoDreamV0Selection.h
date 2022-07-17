@@ -335,7 +335,7 @@ bool FemtoDreamV0Selection::isSelectedMinimal(C const& col, V const& v0, T const
     return false;
   }
 
-  // check that track combinations for V0 or antiV0 would be fulfilling PID 
+  // check that track combinations for V0 or antiV0 would be fulfilling PID
   int nSigmaPIDMax = PosDaughTrack.getSigmaPIDMax();
   // antiV0
   auto nSigmaPrNeg = negTrack.tpcNSigmaPr();
@@ -343,11 +343,9 @@ bool FemtoDreamV0Selection::isSelectedMinimal(C const& col, V const& v0, T const
   // v0
   auto nSigmaPiNeg = negTrack.tpcNSigmaPi();
   auto nSigmaPrPos = posTrack.tpcNSigmaPr();
-  if (!(abs(nSigmaPrNeg) < nSigmaPIDMax and abs(nSigmaPiPos) < nSigmaPIDMax) and !(abs(nSigmaPrPos) < nSigmaPIDMax and abs(nSigmaPiNeg) < nSigmaPIDMax)){
+  if (!(abs(nSigmaPrNeg) < nSigmaPIDMax and abs(nSigmaPiPos) < nSigmaPIDMax) and !(abs(nSigmaPrPos) < nSigmaPIDMax and abs(nSigmaPiNeg) < nSigmaPIDMax)) {
     return false;
   }
-    
-
 
   return true;
 }
