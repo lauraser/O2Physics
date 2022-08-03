@@ -192,10 +192,10 @@ enum ParticleOriginMCTruth {
 
 DECLARE_SOA_INDEX_COLUMN(FemtoDreamParticle, femtoDreamParticle);
 DECLARE_SOA_COLUMN(PartOriginMCTruth, partOriginMCTruth, uint8_t);      //! Origin of the particle, according to femtodreamparticle::ParticleOriginMCTruth
-DECLARE_SOA_COLUMN(PDGMCTruth, pdgMCTruth, uint32_t);                     //! Particle PDG
+DECLARE_SOA_COLUMN(PDGMCTruth, pdgMCTruth, int);                     //! Particle PDG
 
 // debug variables
-DECLARE_SOA_COLUMN(MotherPDG, motherPDG, uint32_t);             //! Checks mother PDG, where mother is the primary particle for that decay chain
+DECLARE_SOA_COLUMN(MotherPDG, motherPDG, int);             //! Checks mother PDG, where mother is the primary particle for that decay chain
 } // namespace femtodreamparticleMC
 
 DECLARE_SOA_TABLE(FemtoDreamParticlesMC, "AOD", "FEMTODREAMPSMC",

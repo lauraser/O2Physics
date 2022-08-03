@@ -35,8 +35,6 @@
 #include "TMath.h"
 #include <CCDB/BasicCCDBManager.h>
 
-#include<iostream>
-
 using namespace o2;
 using namespace o2::analysis::femtoDream;
 using namespace o2::framework;
@@ -322,29 +320,15 @@ struct femtoDreamProducerTask {
   template <typename ParticleType>
   void fillMCParticle(ParticleType const& particle)
   { 
-    std::cout<<"mc start to check if has mc"<<std::endl;
     if(particle.has_mcParticle()){
-        std::cout<<" has mc"<<std::endl;
       // get corresponding MC particle and its info
       auto particleMC = particle.mcParticle(); 
       auto pdgCode = particleMC.pdgCode(); 
       bool isPrimary = particleMC.isPhysicalPrimary();
-      /*bool isFromDecayChain = particleMC.isFromPrimaryDecayChain();
-      int32_t motherPDG = -999;
-      if(isFromDecayChain){
-        auto primaryMother = particleMC; 
-        while(primaryMother.isFromPrimaryDecayChain()){
-          primaryMother = particleMC.getMother();
-          motherPDG = primaryMother.pdgCode();
-        }
-      }*/
       if(isPrimary) {outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kPrimary, pdgCode); }
       else{outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kNotPrimary, pdgCode);}
-      
-      //if(isFromDecayChain) outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kDaughter, pdgCode); 
-      //if(!isPrimary && !isFromDecayChain) outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kMaterial, pdgCode); 
-      //outputDebugPartsMC(motherPDG);
-        outputDebugPartsMC(-999);
+      // fill with correct values, this is currently placeholder
+      outputDebugPartsMC(-999);
     }
     else{
       outputPartsMC(-999,-999,-999);
