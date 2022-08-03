@@ -145,11 +145,13 @@ struct femtoDreamProducerReducedTask {
           LOGF(fatal, "GRP object not found for timestamp %llu", timestamp);
           return 0;
         }
-        LOGF(info, "Retrieved GRP for timestamp %llu with magnetic field of %d kG", timestamp, grpo->getL3Current());
+        LOGF(info, "Retrieved GRP for timestamp %llu with L3 ", timestamp, grpo->getL3Current());
       }
-      output = 0.1 * (grpo->getL3Current());
+      // taken from GRP onject definition of getNominalL3Field; update later to something smarter (mNominalL3Field = std::lround(5.f * mL3Current / 30000.f);)
+      auto NominalL3Field = std::lround(5.f * grpo->getL3Current() / 30000.f);
+      output = 0.1 * (NominalL3Field);
     }
-
+    
     if (!ConfIsRun3 || (ConfIsRun3 && ConfIsMC)) {
       static o2::parameters::GRPObject* grpo = nullptr;
       if (grpo == nullptr) {
