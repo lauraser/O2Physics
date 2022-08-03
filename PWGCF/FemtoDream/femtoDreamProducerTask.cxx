@@ -35,6 +35,8 @@
 #include "TMath.h"
 #include <CCDB/BasicCCDBManager.h>
 
+#include<iostream>
+
 using namespace o2;
 using namespace o2::analysis::femtoDream;
 using namespace o2::framework;
@@ -239,9 +241,13 @@ struct femtoDreamProducerTask {
   }
 
   /// Function to retrieve the nominal mgnetic field in kG (0.1T) and convert it directly to T
-  float getMagneticFieldTesla(uint64_t timestamp)
+  void getMagneticFieldTesla(aod::BCsWithTimestamps::iterator bc)
   {
     // TODO done only once (and not per run). Will be replaced by CCDBConfigurable
+        // get magnetic field for run
+    if (mRunNumber == bc.runNumber()) return;
+    auto timestamp = bc.timestamp();
+
     float output = -999;
 
     if (ConfIsRun3 && !ConfIsMC) {
@@ -250,10 +256,11 @@ struct femtoDreamProducerTask {
         grpo = ccdb->getForTimeStamp<o2::parameters::GRPMagField>("GLO/Config/GRPMagField", timestamp);
         if (grpo == nullptr) {
           LOGF(fatal, "GRP object not found for timestamp %llu", timestamp);
-          return 0;
+          return;
         }
         LOGF(info, "Retrieved GRP for timestamp %llu with magnetic field of %d kG", timestamp, grpo->getL3Current());
       }
+      /// UPDATE TO NEW CODE 
       output = 0.1 * (grpo->getL3Current());
     }
 
@@ -263,13 +270,14 @@ struct femtoDreamProducerTask {
         grpo = ccdb->getForTimeStamp<o2::parameters::GRPObject>("GLO/GRP/GRP", timestamp);
         if (grpo == nullptr) {
           LOGF(fatal, "GRP object not found for timestamp %llu", timestamp);
-          return 0;
+          return;
         }
         LOGF(info, "Retrieved GRP for timestamp %llu with magnetic field of %d kG", timestamp, grpo->getNominalL3Field());
       }
       output = 0.1 * (grpo->getNominalL3Field());
     }
-    return output;
+    mMagField = output;
+    mRunNumber = bc.runNumber();
   }
 
   template <bool isTrackOrV0, typename ParticleType>
@@ -309,6 +317,38 @@ struct femtoDreamProducerTask {
                        particle.y(),
                        particle.z(),
                        particle.mK0Short()); // QA for v0
+    }
+  }
+  template <typename ParticleType>
+  void fillMCParticle(ParticleType const& particle)
+  { 
+    std::cout<<"mc start to check if has mc"<<std::endl;
+    if(particle.has_mcParticle()){
+        std::cout<<" has mc"<<std::endl;
+      // get corresponding MC particle and its info
+      auto particleMC = particle.mcParticle(); 
+      auto pdgCode = particleMC.pdgCode(); 
+      bool isPrimary = particleMC.isPhysicalPrimary();
+      /*bool isFromDecayChain = particleMC.isFromPrimaryDecayChain();
+      int32_t motherPDG = -999;
+      if(isFromDecayChain){
+        auto primaryMother = particleMC; 
+        while(primaryMother.isFromPrimaryDecayChain()){
+          primaryMother = particleMC.getMother();
+          motherPDG = primaryMother.pdgCode();
+        }
+      }*/
+      if(isPrimary) {outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kPrimary, pdgCode); }
+      else{outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kNotPrimary, pdgCode);}
+      
+      //if(isFromDecayChain) outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kDaughter, pdgCode); 
+      //if(!isPrimary && !isFromDecayChain) outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kMaterial, pdgCode); 
+      //outputDebugPartsMC(motherPDG);
+        outputDebugPartsMC(-999);
+    }
+    else{
+      outputPartsMC(-999,-999,-999);
+      outputDebugPartsMC(-999);
     }
   }
 
@@ -367,32 +407,7 @@ struct femtoDreamProducerTask {
       }
 
       if constexpr (isMC){
-        if (track.has_mcParticle()) {
-          // get corresponding MC particle and its info
-          auto particleMC = track.mcParticle(); 
-          auto pdgCode = particleMC.pdgCode(); 
-          bool isPrimary = particleMC.isPhysicalPrimary();
-          /*bool isFromDecayChain = particleMC.isFromPrimaryDecayChain();
-          int32_t motherPDG = -999;
-          if(isFromDecayChain){
-            auto primaryMother = particleMC; 
-            while(primaryMother.isFromPrimaryDecayChain()){
-              primaryMother = particleMC.getMother();
-              motherPDG = primaryMother.pdgCode();
-            }
-          }*/
-          if(isPrimary) {outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kPrimary, pdgCode); }
-          else{outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kNotPrimary, pdgCode);}
-          
-          //if(isFromDecayChain) outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kDaughter, pdgCode); 
-          //if(!isPrimary && !isFromDecayChain) outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kMaterial, pdgCode); 
-          //outputDebugPartsMC(motherPDG);
-            outputDebugPartsMC(-999);
-        }
-        else{
-          outputPartsMC(-999,-999,-999);
-          outputDebugPartsMC(-999);
-        }
+         fillMCParticle(track);
       }
     }
 
@@ -427,32 +442,7 @@ struct femtoDreamProducerTask {
           outputParts(outputCollision.lastIndex(), v0.positivept(), v0.positiveeta(), v0.positivephi(), aod::femtodreamparticle::ParticleType::kV0Child, cutContainerV0.at(femtoDreamV0Selection::V0ContainerPosition::kPosCuts), cutContainerV0.at(femtoDreamV0Selection::V0ContainerPosition::kPosPID), 0., childIDs, 0, 0);
           const int rowOfPosTrack = outputParts.lastIndex();
           if constexpr (isMC){
-            if(postrack.has_mcParticle()){
-              // get corresponding MC particle and its info
-              auto particleMC = postrack.mcParticle(); 
-              auto pdgCode = particleMC.pdgCode(); 
-              bool isPrimary = particleMC.isPhysicalPrimary();
-              /*bool isFromDecayChain = particleMC.isFromPrimaryDecayChain();
-              int32_t motherPDG = -999;
-              if(isFromDecayChain){
-                auto primaryMother = particleMC; 
-                while(primaryMother.isFromPrimaryDecayChain()){
-                  primaryMother = particleMC.getMother();
-                  motherPDG = primaryMother.pdgCode();
-                }
-              }*/
-              if(isPrimary) {outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kPrimary, pdgCode); }
-              else{outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kNotPrimary, pdgCode);}
-              
-              //if(isFromDecayChain) outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kDaughter, pdgCode); 
-              //if(!isPrimary && !isFromDecayChain) outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kMaterial, pdgCode); 
-              //outputDebugPartsMC(motherPDG);
-                outputDebugPartsMC(-999);
-            }
-            else{
-              outputPartsMC(-999,-999,-999);
-              outputDebugPartsMC(-999);
-            }
+            fillMCParticle(postrack);
           }
           int negtrackID = v0.negTrackId();
           int rowInPrimaryTrackTableNeg = -1;
@@ -462,32 +452,7 @@ struct femtoDreamProducerTask {
           outputParts(outputCollision.lastIndex(), v0.negativept(), v0.negativeeta(), v0.negativephi(), aod::femtodreamparticle::ParticleType::kV0Child, cutContainerV0.at(femtoDreamV0Selection::V0ContainerPosition::kNegCuts), cutContainerV0.at(femtoDreamV0Selection::V0ContainerPosition::kNegPID), 0., childIDs, 0, 0);
           const int rowOfNegTrack = outputParts.lastIndex();
           if constexpr (isMC){
-            if(negtrack.has_mcParticle()){
-              // get corresponding MC particle and its info
-              auto particleMC = negtrack.mcParticle(); 
-              auto pdgCode = particleMC.pdgCode(); 
-              bool isPrimary = particleMC.isPhysicalPrimary();
-              /*bool isFromDecayChain = particleMC.isFromPrimaryDecayChain();
-              int32_t motherPDG = -999;
-              if(isFromDecayChain){
-                auto primaryMother = particleMC; 
-                while(primaryMother.isFromPrimaryDecayChain()){
-                  primaryMother = particleMC.getMother();
-                  motherPDG = primaryMother.pdgCode();
-                }
-              }*/
-              if(isPrimary) {outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kPrimary, pdgCode); }
-              else{outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kNotPrimary, pdgCode);}
-              
-              //if(isFromDecayChain) outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kDaughter, pdgCode); 
-              //if(!isPrimary && !isFromDecayChain) outputPartsMC(outputParts.lastIndex(),aod::femtodreamparticleMC::ParticleOriginMCTruth::kMaterial, pdgCode); 
-              //outputDebugPartsMC(motherPDG);
-                outputDebugPartsMC(-999);
-            }
-            else{
-              outputPartsMC(-999,-999,-999);
-              outputDebugPartsMC(-999);
-            }
+            fillMCParticle(negtrack);
           }
           int indexChildID[2] = {rowOfPosTrack, rowOfNegTrack};
           outputParts(outputCollision.lastIndex(), v0.pt(), v0.eta(), v0.phi(), aod::femtodreamparticle::ParticleType::kV0, cutContainerV0.at(femtoDreamV0Selection::V0ContainerPosition::kV0), 0, v0.v0cosPA(col.posX(), col.posY(), col.posZ()), indexChildID, v0.mLambda(), v0.mAntiLambda());
@@ -513,11 +478,8 @@ struct femtoDreamProducerTask {
                o2::aod::V0Datas const& fullV0s) /// \todo with FilteredFullV0s
   {
     // get magnetic field for run
-    auto bc = col.bc_as<aod::BCsWithTimestamps>();
-    if (mRunNumber != bc.runNumber()) {
-      mMagField = getMagneticFieldTesla(bc.timestamp());
-      mRunNumber = bc.runNumber();
-    }
+    getMagneticFieldTesla(col.bc_as<aod::BCsWithTimestamps>());
+    // fill the tables
     fillCollisionsAndTracksAndV0<false>(col, tracks, fullV0s);
   }
   PROCESS_SWITCH(femtoDreamProducerTask, processData, "Provide experimental data", true);
@@ -529,11 +491,8 @@ struct femtoDreamProducerTask {
                o2::aod::V0Datas const& fullV0s) /// \todo with FilteredFullV0s
   {
     // get magnetic field for run
-    auto bc = col.bc_as<aod::BCsWithTimestamps>();
-    if (mRunNumber != bc.runNumber()) {
-      mMagField = getMagneticFieldTesla(bc.timestamp());
-      mRunNumber = bc.runNumber();
-    }
+    getMagneticFieldTesla(col.bc_as<aod::BCsWithTimestamps>());
+    // fill the tables
     fillCollisionsAndTracksAndV0<true>(col, tracks, fullV0s);
   }
   PROCESS_SWITCH(femtoDreamProducerTask, processMC, "Provide MC data", false);
