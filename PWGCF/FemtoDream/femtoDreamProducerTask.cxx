@@ -245,7 +245,6 @@ struct femtoDreamProducerTask {
         // get magnetic field for run
     if (mRunNumber == bc.runNumber()) return;
     auto timestamp = bc.timestamp();
-
     float output = -999;
 
     if (ConfIsRun3 && !ConfIsMC) {
