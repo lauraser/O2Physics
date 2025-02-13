@@ -147,6 +147,11 @@ struct femtoDreamProducerTask {
   Configurable<float> ConfTrkPIDnSigmaOffsetTPC{"ConfTrkPIDnSigmaOffsetTPC", 0., "Offset for TPC nSigma because of bad calibration"};
   Configurable<float> ConfTrkPIDnSigmaOffsetTOF{"ConfTrkPIDnSigmaOffsetTOF", 0., "Offset for TOF nSigma because of bad calibration"};
   Configurable<std::vector<int>> ConfTrkPIDspecies{"ConfTrkPIDspecies", std::vector<int>{o2::track::PID::Pion, o2::track::PID::Kaon, o2::track::PID::Proton, o2::track::PID::Deuteron}, "Trk sel: Particles species for PID"};
+  Configurable<float> ConfTrkMinChi2PerClusterTPC{"ConfTrkMinChi2PerClusterTPC", 0.f, "Lower limit for chi2 of TPC; currently for testing only"};
+  Configurable<float> ConfTrkMaxChi2PerClusterTPC{"ConfTrkMaxChi2PerClusterTPC", 1000.f, "Upper limit for chi2 of TPC; currently for testing only"};
+  Configurable<float> ConfTrkMaxChi2PerClusterITS{"ConfTrkMaxChi2PerClusterITS", 1000.0f, "Minimal track selection: max allowed chi2 per ITS cluster"}; // 36.0 is default
+  Configurable<bool> ConfTrkTPCRefit{"ConfTrkTPCRefit", false, "True: require TPC refit"};
+  Configurable<bool> ConfTrkITSRefit{"ConfTrkITSRefit", false, "True: require ITS refit"};
 
   FemtoDreamV0Selection v0Cuts;
   Configurable<std::vector<float>> ConfV0Sign{FemtoDreamV0Selection::getSelectionName(femtoDreamV0Selection::kV0Sign, "ConfV0"), std::vector<float>{-1, 1}, FemtoDreamV0Selection::getSelectionHelper(femtoDreamV0Selection::kV0Sign, "V0 selection: ")};
@@ -700,6 +705,16 @@ struct femtoDreamProducerTask {
       /// if the most open selection criteria are not fulfilled there is no
       /// point looking further at the track
       trackCuts.fillQA<aod::femtodreamparticle::ParticleType::kTrack, aod::femtodreamparticle::TrackType::kNoChild, 0>(track);
+
+      /*if(track.tpcChi2NCl() < ConfTrkMinChi2PerClusterTPC || track.tpcChi2NCl()> ConfTrkMaxChi2PerClusterTPC){
+        continue;
+      }
+      if(track.itsChi2NCl()> ConfTrkMaxChi2PerClusterITS){
+        continue;
+      }
+      if( (ConfTrkTPCRefit && !track.hasTPC()) || (ConfTrkITSRefit && !track.hasITS())){
+        continue;
+      }*/
       if (!trackCuts.isSelectedMinimal(track)) {
         continue;
       }
