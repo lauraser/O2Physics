@@ -49,6 +49,10 @@ struct femtoDreamProducerTaskForSpecificAnalysis {
   float mMassOne = -999, mMassTwo = -999, mMassThree = -999;
   int collisions = 0;
 
+  // Require bitmask selection for candidates
+  Configurable<bool> ConfRequireBitmask{"ConfRequireBitmask", false, "Require bitmask selection for candidates"};
+
+  // Number of candidates required
   Configurable<int> ConfNumberOfTracks{"ConfNumberOfTracks", 3, "Number of tracks"};
   Configurable<int> ConfNumberOfV0{"ConfNumberOfV0", 0, "Number of V0"};
   Configurable<int> ConfNumberOfCascades{"ConfNumberOfCascades", 0, "Number of Cascades"};
@@ -57,6 +61,9 @@ struct femtoDreamProducerTaskForSpecificAnalysis {
   Configurable<float> ConfPIDthrMom{"ConfPIDthrMom", 1.f, "Momentum threshold from which TPC and TOF are required for PID"};
   Configurable<o2::aod::femtodreamparticle::cutContainerType> ConfTPCPIDBit{"ConfTPCPIDBit", 16, "PID TPC bit from cutCulator "};
   Configurable<o2::aod::femtodreamparticle::cutContainerType> ConfTPCTOFPIDBit{"ConfTPCTOFPIDBit", 8, "PID TPCTOF bit from cutCulator"};
+  Configurable<o2::aod::femtodreamparticle::cutContainerType> ConfCutPart{"ConfCutPart", 0, "Track - Selection bit from cutCulator for part"};
+  Configurable<o2::aod::femtodreamparticle::cutContainerType> ConfCutPartAntiPart{"ConfCutPartAntiPart", 0, "Track - Selection bit from cutCulator for antipart"};
+
 
   /// Partition for selected particles
   Partition<aod::FDParticles> SelectedParts = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kTrack)) &&
@@ -67,12 +74,19 @@ struct femtoDreamProducerTaskForSpecificAnalysis {
   Configurable<float> Conf_maxInvMass_V0{"Conf_maxInvMass_V0", 1.15, "Maximum invariant mass of V0 (particle)"};
   Configurable<float> Conf_minInvMassAnti_V0{"Conf_minInvMassAnti_V0", 1.08, "Minimum invariant mass of V0 (antiparticle)"};
   Configurable<float> Conf_maxInvMassAnti_V0{"Conf_maxInvMassAnti_V0", 1.15, "Maximum invariant mass of V0 (antiparticle)"};
+  Configurable<o2::aod::femtodreamparticle::cutContainerType> ConfCutV0_SameForAntipart{"ConfCutV0_SameForAntipart", 0, "V0 - Selection bit from cutCulator for part/antipart"};
+  Configurable<o2::aod::femtodreamparticle::cutContainerType> Conf_ChildPos_CutV0{"Conf_ChildPos_CutV0", 149, "Selection bit for positive child of V0"};
+  Configurable<o2::aod::femtodreamparticle::cutContainerType> Conf_ChildPos_TPCBitV0{"Conf_ChildPos_TPCBitV0", 2, "PID TPC bit for positive child of V0"};
+  Configurable<o2::aod::femtodreamparticle::cutContainerType> Conf_ChildNeg_CutV0{"Conf_ChildNeg_CutV0", 149, "Selection bit for negative child of V0"};
+  Configurable<o2::aod::femtodreamparticle::cutContainerType> Conf_ChildNeg_TPCBitV0{"Conf_ChildNeg_TPCBitV0", 2, "PID TPC bit for negative child of V0"};
+
   /// Cascade selection
   Configurable<float> Conf_minInvMass_Cascade{"Conf_minInvMass_Cascade", 1.2, "Minimum invariant mass of Cascade (particle)"};
   Configurable<float> Conf_maxInvMass_Cascade{"Conf_maxInvMass_Cascade", 1.5, "Maximum invariant mass of Cascade (particle)"};
 
+
   // Partition for selected particles
-  Partition<aod::FDParticles> SelectedV0s = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kV0));
+  Partition<aod::FDParticles> SelectedV0s = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kV0)) ;
   Partition<aod::FDParticles> SelectedCascades = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kCascade));
 
   HistogramRegistry EventRegistry{"EventRegistry", {}, OutputObjHandlingPolicy::AnalysisObject};
@@ -95,8 +109,12 @@ struct femtoDreamProducerTaskForSpecificAnalysis {
   void init(InitContext&)
   {
     EventRegistry.add("hStatistiscs", ";bin;Entries", kTH1F, {{3, 0, 3}});
-    // get bit for the collision mask
+    // Never run V0s and Cascades together as this will DOUBLE the track number and induce self correlations
+    if ((doprocessCollisionsWithNTracksAndNCascades && doprocessCollisionsWithNTracksAndNV0)) {
+      LOG(fatal) << "Never run V0s and Cascades together as this will DOUBLE the track number and induce self correlations!";
+    }
   }
+
   /// This function stores accepted collisions in derived data
   /// @tparam PartitionType
   /// @tparam PartType
@@ -112,9 +130,13 @@ struct femtoDreamProducerTaskForSpecificAnalysis {
     int antitracksCount = 0;
     for (auto& part : groupSelectedTracks) {
       if (part.cut() & 1) {
-        antitracksCount++;
+        if(!ConfRequireBitmask || ncheckbit(part.cut(), ConfCutPartAntiPart ) ){
+          antitracksCount++;
+        }
       } else {
-        tracksCount++;
+        if(!ConfRequireBitmask || ncheckbit(part.cut(), ConfCutPart) ){
+          tracksCount++;
+        }
       }
     }
 
@@ -123,10 +145,33 @@ struct femtoDreamProducerTaskForSpecificAnalysis {
     int antiV0Count = 0;
     for (auto& V0 : groupSelectedV0s) {
       if ((V0.mLambda() > Conf_minInvMass_V0) && (V0.mLambda() < Conf_maxInvMass_V0)) {
-        V0Count++;
+        if (ConfRequireBitmask){
+          if(ncheckbit(V0.cut(), ConfCutV0_SameForAntipart)){
+            const auto& posChild = parts.iteratorAt(V0.index() - 2);
+            const auto& negChild = parts.iteratorAt(V0.index() - 1);
+            if (((posChild.cut() & Conf_ChildPos_CutV0) == Conf_ChildPos_CutV0 &&
+                 (posChild.pidcut() & Conf_ChildPos_TPCBitV0) == Conf_ChildPos_TPCBitV0 &&
+                 (negChild.cut() & Conf_ChildNeg_CutV0) == Conf_ChildNeg_CutV0 &&
+                 (negChild.pidcut() & Conf_ChildNeg_TPCBitV0) == Conf_ChildNeg_TPCBitV0)) {
+               V0Count++;
+            }
+          }
+        } else{ V0Count++;}
       } else if ((V0.mAntiLambda() > Conf_minInvMassAnti_V0) && (V0.mAntiLambda() < Conf_maxInvMassAnti_V0)) {
-        antiV0Count++;
+        if (ConfRequireBitmask){
+          if(ncheckbit(V0.cut(), ConfCutV0_SameForAntipart)){
+            const auto& posChild = parts.iteratorAt(V0.index() - 2);
+            const auto& negChild = parts.iteratorAt(V0.index() - 1);
+            if (((posChild.cut() & Conf_ChildPos_CutV0) == Conf_ChildPos_CutV0 && 
+                 (posChild.pidcut() & Conf_ChildNeg_TPCBitV0) ==  Conf_ChildNeg_TPCBitV0 && // exchanged values because checking antiparticle daughters and pid of particles exchange
+                 (negChild.cut() & Conf_ChildNeg_CutV0) == Conf_ChildNeg_CutV0 &&
+                 (negChild.pidcut() & Conf_ChildPos_TPCBitV0) == Conf_ChildPos_TPCBitV0)) { // exchanged values because checking antiparticle daughters and pid of particles exchange
+               antiV0Count++;
+            }
+          }
+        } else{antiV0Count++;}
       }
+      
     }
 
     std::vector<int> tmpIDtrack;
