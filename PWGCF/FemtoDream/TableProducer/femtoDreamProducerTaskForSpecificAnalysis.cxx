@@ -64,7 +64,6 @@ struct femtoDreamProducerTaskForSpecificAnalysis {
   Configurable<o2::aod::femtodreamparticle::cutContainerType> ConfCutPart{"ConfCutPart", 0, "Track - Selection bit from cutCulator for part"};
   Configurable<o2::aod::femtodreamparticle::cutContainerType> ConfCutPartAntiPart{"ConfCutPartAntiPart", 0, "Track - Selection bit from cutCulator for antipart"};
 
-
   /// Partition for selected particles
   Partition<aod::FDParticles> SelectedParts = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kTrack)) &&
                                               ifnode(aod::femtodreamparticle::pt * (nexp(aod::femtodreamparticle::eta) + nexp(-1.f * aod::femtodreamparticle::eta)) / 2.f <= ConfPIDthrMom, ncheckbit(aod::femtodreamparticle::pidcut, ConfTPCPIDBit), ncheckbit(aod::femtodreamparticle::pidcut, ConfTPCTOFPIDBit));
@@ -84,9 +83,8 @@ struct femtoDreamProducerTaskForSpecificAnalysis {
   Configurable<float> Conf_minInvMass_Cascade{"Conf_minInvMass_Cascade", 1.2, "Minimum invariant mass of Cascade (particle)"};
   Configurable<float> Conf_maxInvMass_Cascade{"Conf_maxInvMass_Cascade", 1.5, "Maximum invariant mass of Cascade (particle)"};
 
-
   // Partition for selected particles
-  Partition<aod::FDParticles> SelectedV0s = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kV0)) ;
+  Partition<aod::FDParticles> SelectedV0s = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kV0));
   Partition<aod::FDParticles> SelectedCascades = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kCascade));
 
   HistogramRegistry EventRegistry{"EventRegistry", {}, OutputObjHandlingPolicy::AnalysisObject};
@@ -130,11 +128,11 @@ struct femtoDreamProducerTaskForSpecificAnalysis {
     int antitracksCount = 0;
     for (auto& part : groupSelectedTracks) {
       if (part.cut() & 1) {
-        if(!ConfRequireBitmask || ncheckbit(part.cut(), ConfCutPartAntiPart ) ){
+        if (!ConfRequireBitmask || ncheckbit(part.cut(), ConfCutPartAntiPart)) {
           antitracksCount++;
         }
       } else {
-        if(!ConfRequireBitmask || ncheckbit(part.cut(), ConfCutPart) ){
+        if (!ConfRequireBitmask || ncheckbit(part.cut(), ConfCutPart)) {
           tracksCount++;
         }
       }
@@ -145,33 +143,36 @@ struct femtoDreamProducerTaskForSpecificAnalysis {
     int antiV0Count = 0;
     for (auto& V0 : groupSelectedV0s) {
       if ((V0.mLambda() > Conf_minInvMass_V0) && (V0.mLambda() < Conf_maxInvMass_V0)) {
-        if (ConfRequireBitmask){
-          if(ncheckbit(V0.cut(), ConfCutV0_SameForAntipart)){
+        if (ConfRequireBitmask) {
+          if (ncheckbit(V0.cut(), ConfCutV0_SameForAntipart)) {
             const auto& posChild = parts.iteratorAt(V0.index() - 2);
             const auto& negChild = parts.iteratorAt(V0.index() - 1);
             if (((posChild.cut() & Conf_ChildPos_CutV0) == Conf_ChildPos_CutV0 &&
                  (posChild.pidcut() & Conf_ChildPos_TPCBitV0) == Conf_ChildPos_TPCBitV0 &&
                  (negChild.cut() & Conf_ChildNeg_CutV0) == Conf_ChildNeg_CutV0 &&
                  (negChild.pidcut() & Conf_ChildNeg_TPCBitV0) == Conf_ChildNeg_TPCBitV0)) {
-               V0Count++;
+              V0Count++;
             }
           }
-        } else{ V0Count++;}
+        } else {
+          V0Count++;
+        }
       } else if ((V0.mAntiLambda() > Conf_minInvMassAnti_V0) && (V0.mAntiLambda() < Conf_maxInvMassAnti_V0)) {
-        if (ConfRequireBitmask){
-          if(ncheckbit(V0.cut(), ConfCutV0_SameForAntipart)){
+        if (ConfRequireBitmask) {
+          if (ncheckbit(V0.cut(), ConfCutV0_SameForAntipart)) {
             const auto& posChild = parts.iteratorAt(V0.index() - 2);
             const auto& negChild = parts.iteratorAt(V0.index() - 1);
-            if (((posChild.cut() & Conf_ChildPos_CutV0) == Conf_ChildPos_CutV0 && 
-                 (posChild.pidcut() & Conf_ChildNeg_TPCBitV0) ==  Conf_ChildNeg_TPCBitV0 && // exchanged values because checking antiparticle daughters and pid of particles exchange
+            if (((posChild.cut() & Conf_ChildPos_CutV0) == Conf_ChildPos_CutV0 &&
+                 (posChild.pidcut() & Conf_ChildNeg_TPCBitV0) == Conf_ChildNeg_TPCBitV0 && // exchanged values because checking antiparticle daughters and pid of particles exchange
                  (negChild.cut() & Conf_ChildNeg_CutV0) == Conf_ChildNeg_CutV0 &&
                  (negChild.pidcut() & Conf_ChildPos_TPCBitV0) == Conf_ChildPos_TPCBitV0)) { // exchanged values because checking antiparticle daughters and pid of particles exchange
-               antiV0Count++;
+              antiV0Count++;
             }
           }
-        } else{antiV0Count++;}
+        } else {
+          antiV0Count++;
+        }
       }
-      
     }
 
     std::vector<int> tmpIDtrack;
