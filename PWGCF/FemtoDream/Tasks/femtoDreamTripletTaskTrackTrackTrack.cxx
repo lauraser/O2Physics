@@ -23,6 +23,7 @@
 #include "Framework/StepTHn.h"
 #include "Framework/O2DatabasePDGPlugin.h"
 #include "TDatabasePDG.h"
+#include <algorithm>
 
 #include "PWGCF/DataModel/FemtoDerived.h"
 #include "PWGCF/FemtoDream/Core/femtoDreamParticleHisto.h"
@@ -77,7 +78,26 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   Configurable<o2::aod::femtodreamparticle::cutContainerType> ConfCutPart{"ConfCutPart", 5542474, "Track - Selection bit from cutCulator"};
 
   /// Partition for selected particles
-  Partition<aod::FDParticles> SelectedParts = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kTrack)) &&
+  Partition<aod::FDParticles> SelectedParts = /*((aod::femtodreamparticle::phi > float(6.263)) || (aod::femtodreamparticle::phi < float(0.02)) ||  // around 0
+                                              ((aod::femtodreamparticle::phi > float(0.329)) && (aod::femtodreamparticle::phi < float(0.369))) ||
+                                              ((aod::femtodreamparticle::phi > float(0.678)) && (aod::femtodreamparticle::phi < float(0.718))) ||
+                                              ((aod::femtodreamparticle::phi > float(1.027)) && (aod::femtodreamparticle::phi < float(1.067))) ||
+                                              ((aod::femtodreamparticle::phi > float(1.376)) && (aod::femtodreamparticle::phi < float(1.416))) ||
+                                              ((aod::femtodreamparticle::phi > float(1.725)) && (aod::femtodreamparticle::phi < float(1.765))) ||
+                                              ((aod::femtodreamparticle::phi > float(2.074)) && (aod::femtodreamparticle::phi < float(2.114))) ||
+                                              ((aod::femtodreamparticle::phi > float(2.423)) && (aod::femtodreamparticle::phi < float(2.463))) ||
+                                              ((aod::femtodreamparticle::phi > float(2.772)) && (aod::femtodreamparticle::phi < float(2.812))) ||
+                                              ((aod::femtodreamparticle::phi > float(3.122)) && (aod::femtodreamparticle::phi < float(3.162))) ||
+                                              ((aod::femtodreamparticle::phi > float(3.471)) && (aod::femtodreamparticle::phi < float(3.511))) ||
+                                              ((aod::femtodreamparticle::phi > float(3.820)) && (aod::femtodreamparticle::phi < float(3.860))) ||
+                                              ((aod::femtodreamparticle::phi > float(4.169)) && (aod::femtodreamparticle::phi < float(4.209))) ||
+                                              ((aod::femtodreamparticle::phi > float(4.518)) && (aod::femtodreamparticle::phi < float(4.558))) ||
+                                              ((aod::femtodreamparticle::phi > float(4.867)) && (aod::femtodreamparticle::phi < float(4.907))) ||
+                                              ((aod::femtodreamparticle::phi > float(5.216)) && (aod::femtodreamparticle::phi < float(5.256))) ||
+                                              ((aod::femtodreamparticle::phi > float(5.565)) && (aod::femtodreamparticle::phi < float(5.605))) ||
+                                              ((aod::femtodreamparticle::phi > float(5.914)) && (aod::femtodreamparticle::phi < float(5.954)))) &&*/
+                                              //((aod::femtodreamparticle::eta > ConfRejectEtaAt0) || (aod::femtodreamparticle::eta < -ConfRejectEtaAt0)) &&
+                                              (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kTrack)) &&
                                               ifnode(aod::femtodreamparticle::pt * (nexp(aod::femtodreamparticle::eta) + nexp(-1.f * aod::femtodreamparticle::eta)) / 2.f <= ConfPIDthrMom, ncheckbit(aod::femtodreamparticle::pidcut, ConfTPCPIDBit), ncheckbit(aod::femtodreamparticle::pidcut, ConfTPCTOFPIDBit)) &&
                                               (ncheckbit(aod::femtodreamparticle::cut, ConfCutPart)) &&
                                               (aod::femtodreamparticle::pt < ConfMaxpT) &&
@@ -159,6 +179,10 @@ struct femtoDreamTripletTaskTrackTrackTrack {
       ThreeBodyQARegistry.add("TrackMC_QA/hMazzachi", ";gen;(reco-gen)/gen", kTH2F, {{100, ConfMinpT, ConfMaxpT}, {300, -1, 1}});
     }
     ThreeBodyQARegistry.add("TripletTaskQA/hCentrality", ";Centrality; Q3", kTH2F, {{100, 0, 100}, ConfQ3Bins});
+    ThreeBodyQARegistry.add("TripletTaskQA/kstartkstarLargestLargest", ";k*; k*", kTH2F, {{400, 0, 4}, {400, 0, 4}});
+    ThreeBodyQARegistry.add("TripletTaskQA/kstartkstarLargestSmallest", ";k*; k*", kTH2F, {{400, 0, 4}, {400, 0, 4}});
+    ThreeBodyQARegistry.add("TripletTaskQA/kstartkstarLargestLargestME", ";k*; k*", kTH2F, {{400, 0, 4}, {400, 0, 4}});
+    ThreeBodyQARegistry.add("TripletTaskQA/kstartkstarLargestSmallestME", ";k*; k*", kTH2F, {{400, 0, 4}, {400, 0, 4}});
 
     sameEventCont.init(&resultRegistry, ConfQ3Bins, ConfMultBins, ConfIsMC);
     mixedEventCont.init(&resultRegistry, ConfQ3Bins, ConfMultBins, ConfIsMC);
@@ -269,6 +293,22 @@ struct femtoDreamTripletTaskTrackTrackTrack {
       ThreeBodyQARegistry.fill(HIST("TripletTaskQA/particle_pT_in_Triplet_SE"), p1.pt(), p2.pt(), p3.pt(), Q3);
       sameEventCont.setTriplet<isMC>(p1, p2, p3, multCol, Q3);
       ThreeBodyQARegistry.fill(HIST("TripletTaskQA/hCentrality"), centCol, Q3);
+      float k12 = FemtoDreamMath::getkstar(p1, mMassOne, p2, mMassTwo);
+      float k13 = FemtoDreamMath::getkstar(p1, mMassOne, p3, mMassThree);
+      float k23 = FemtoDreamMath::getkstar(p2, mMassTwo, p3, mMassThree);
+      double tempkij[3] = {k12, k13, k23};
+      std::sort(tempkij, tempkij + 3);
+      ThreeBodyQARegistry.fill(HIST("TripletTaskQA/kstartkstarLargestLargest"),tempkij[1], tempkij[2]);
+      ThreeBodyQARegistry.fill(HIST("TripletTaskQA/kstartkstarLargestSmallest"), tempkij[0], tempkij[2]);
+      //std::cout<<tempkij[0]<<" "<<tempkij[1]<<" "<<tempkij[2]<<std::endl;
+      /*if(tempkij[1]>0.6 && tempkij[2]>0.6){
+        trackHistoSelectedParts.fillQA<isMC, false>(p1, aod::femtodreamparticle::kPt, multCol, centCol);
+        trackHistoSelectedParts.fillQA<isMC, false>(p2, aod::femtodreamparticle::kPt, multCol, centCol);
+        trackHistoSelectedParts.fillQA<isMC, false>(p3, aod::femtodreamparticle::kPt, multCol, centCol);
+        ThreeBodyQARegistry.fill(HIST("TripletTaskQA/kstartkstarLargestLargest"),tempkij[1], tempkij[2]);
+        ThreeBodyQARegistry.fill(HIST("TripletTaskQA/kstartkstarLargestSmallest"), tempkij[0], tempkij[2]);
+      }*/
+
     }
     ThreeBodyQARegistry.fill(HIST("TripletTaskQA/hTripletsPerEventBelow14"), numberOfTriplets);
   }
@@ -381,6 +421,15 @@ struct femtoDreamTripletTaskTrackTrackTrack {
       }
       // fill pT of all three particles as a function of Q3 for lambda calculations
       ThreeBodyQARegistry.fill(HIST("TripletTaskQA/particle_pT_in_Triplet_ME"), p1.pt(), p2.pt(), p3.pt(), Q3);
+      
+      float k12 = FemtoDreamMath::getkstar(p1, mMassOne, p2, mMassTwo);
+      float k13 = FemtoDreamMath::getkstar(p1, mMassOne, p3, mMassThree);
+      float k23 = FemtoDreamMath::getkstar(p2, mMassTwo, p3, mMassThree);
+      double tempkij[3] = {k12, k13, k23};
+      std::sort(tempkij, tempkij + 3);
+      //std::cout<<tempkij[0]<<" "<<tempkij[1]<<" "<<tempkij[2]<<std::endl;
+      ThreeBodyQARegistry.fill(HIST("TripletTaskQA/kstartkstarLargestLargestME"),tempkij[1], tempkij[2]);
+      ThreeBodyQARegistry.fill(HIST("TripletTaskQA/kstartkstarLargestSmallestME"), tempkij[0], tempkij[2]);
       mixedEventCont.setTriplet<isMC>(p1, p2, p3, multCol, Q3);
     }
   }
