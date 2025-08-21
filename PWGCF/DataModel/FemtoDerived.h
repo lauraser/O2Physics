@@ -493,7 +493,7 @@ namespace mcfdextlabel
 {
 DECLARE_SOA_INDEX_COLUMN(FDExtMCParticle, fdExtMCParticle); //! MC particle for femtodreamparticle
 } // namespace mcfdextlabel
-DECLARE_SOA_TABLE(FDExtMCLabels, "AOD", "FDExtMCLabel", //! Table joinable to FemtoDreamParticle containing the MC labels
+DECLARE_SOA_TABLE_STAGED(FDExtMCLabels, "FDExtMCLabel", //! Table joinable to FemtoDreamParticle containing the MC labels
                   mcfdextlabel::FDExtMCParticleId);
 
 DECLARE_SOA_TABLE(FDHfCandMCGen, "AOD", "FDHFCANDMCGEN", //! Table for generated MC charm hadron

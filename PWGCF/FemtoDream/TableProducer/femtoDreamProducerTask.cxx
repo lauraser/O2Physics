@@ -46,6 +46,7 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
+using namespace o2::aod::rctsel;
 using namespace o2::analysis::femtoDream;
 
 namespace o2::aod
@@ -205,6 +206,13 @@ struct femtoDreamProducerTask {
 
   } OptionTrackSpecialSelections;
 
+  struct : o2::framework::ConfigurableGroup {
+    Configurable<bool> requireRCTFlagChecker{"requireRCTFlagChecker", true, "Check event quality in run condition table"};
+    Configurable<std::string> cfgEvtRCTFlagCheckerLabel{"cfgEvtRCTFlagCheckerLabel", "CBT_hadronPID", "Evt sel: RCT flag checker label"};
+    Configurable<bool> cfgEvtRCTFlagCheckerLimitAcceptAsBad{"cfgEvtRCTFlagCheckerLimitAcceptAsBad", true, "Evt sel: RCT flag checker treat Limited Acceptance As Bad"};
+  } rctCut;
+
+
   HistogramRegistry qaRegistry{"QAHistos", {}, OutputObjHandlingPolicy::AnalysisObject};
   HistogramRegistry TrackRegistry{"Tracks", {}, OutputObjHandlingPolicy::AnalysisObject};
   HistogramRegistry V0Registry{"V0", {}, OutputObjHandlingPolicy::AnalysisObject};
@@ -214,6 +222,7 @@ struct femtoDreamProducerTask {
   float mMagField;
   std::string zorroTriggerNames = "";
   Service<o2::ccdb::BasicCCDBManager> ccdb; /// Accessing the CCDB
+  RCTFlagsChecker rctChecker;
 
   void init(InitContext&)
   {
@@ -254,6 +263,9 @@ struct femtoDreamProducerTask {
       }
       zorroTriggerNames.pop_back();
     }
+
+
+    rctChecker.init(rctCut.cfgEvtRCTFlagCheckerLabel, false, rctCut.cfgEvtRCTFlagCheckerLimitAcceptAsBad);
 
     colCuts.setCuts(ConfEvtZvtx.value, ConfEvtTriggerCheck.value, ConfEvtTriggerSel.value, ConfEvtOfflineCheck.value, ConfEvtAddOfflineCheck.value, ConfIsRun3.value);
     colCuts.init(&qaRegistry);
@@ -568,6 +580,8 @@ struct femtoDreamProducerTask {
     if (!colCuts.isSelectedCollision(col)) {
       return;
     }
+
+   
     if (ConfIsActivateV0.value) {
       if (colCuts.isEmptyCollision(col, tracks, trackCuts) && colCuts.isEmptyCollision(col, fullV0s, v0Cuts, tracks)) {
         return;
@@ -577,7 +591,12 @@ struct femtoDreamProducerTask {
         return;
       }
     }
+     
 
+    if (rctCut.requireRCTFlagChecker && !rctChecker(col) ){
+      return;
+    }
+      
     outputCollision(vtxZ, mult, multNtr, spher, mMagField);
     if constexpr (isMC) {
       fillMCCollision(col);
