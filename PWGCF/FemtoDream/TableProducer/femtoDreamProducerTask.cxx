@@ -295,6 +295,13 @@ struct femtoDreamProducerTask {
     Configurable<int> ConfTPCOccupancyMax{"ConfTPCOccupancyMax", 5000, "Maximum value for TPC Occupancy selection"};
   } OptionEvtSpecialSelections;
 
+  struct : o2::framework::ConfigurableGroup {
+    Configurable<bool> requireRCTFlagChecker{"requireRCTFlagChecker", true, "Check event quality in run condition table"};
+    Configurable<std::string> cfgEvtRCTFlagCheckerLabel{"cfgEvtRCTFlagCheckerLabel", "CBT_hadronPID", "Evt sel: RCT flag checker label"};
+    Configurable<bool> cfgEvtRCTFlagCheckerLimitAcceptAsBad{"cfgEvtRCTFlagCheckerLimitAcceptAsBad", true, "Evt sel: RCT flag checker treat Limited Acceptance As Bad"};
+  } rctCut;
+
+
   HistogramRegistry qaRegistry{"QAHistos", {}, OutputObjHandlingPolicy::AnalysisObject};
   HistogramRegistry TrackRegistry{"Tracks", {}, OutputObjHandlingPolicy::AnalysisObject};
   HistogramRegistry V0Registry{"V0", {}, OutputObjHandlingPolicy::AnalysisObject};
@@ -349,9 +356,10 @@ struct femtoDreamProducerTask {
       zorroTriggerNames.pop_back();
     }
 
+
     rctChecker.init(rctCut.cfgEvtRCTFlagCheckerLabel, false, rctCut.cfgEvtRCTFlagCheckerLimitAcceptAsBad);
 
-    colCuts.setCuts(ConfEvtZvtx.value, ConfEvtTriggerCheck.value, ConfEvtTriggerSel.value, ConfEvtOfflineCheck.value, ConfEvtAddOfflineCheck.value, ConfIsRun3.value, ConfEvtMinSphericity.value, ConfEvtSphericityPtmin.value);
+    colCuts.setCuts(ConfEvtZvtx.value, ConfEvtTriggerCheck.value, ConfEvtTriggerSel.value, ConfEvtOfflineCheck.value, ConfEvtAddOfflineCheck.value, ConfIsRun3.value);
     colCuts.init(&qaRegistry);
 
     trackCuts.setSelection(ConfTrkCharge, femtoDreamTrackSelection::kSign, femtoDreamSelection::kEqual);

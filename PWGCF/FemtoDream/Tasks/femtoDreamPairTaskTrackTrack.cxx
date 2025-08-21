@@ -139,7 +139,7 @@ struct femtoDreamPairTaskTrackTrack {
     (aod::femtodreamparticle::pt <= Track1.PtMax) &&
     (aod::femtodreamparticle::eta >= Track1.EtaMin) &&
     (aod::femtodreamparticle::eta <= Track1.EtaMax) &&
-    ifnode(Option.DCACutPtDep, (nabs(aod::femtodreamparticle::tempFitVar) <= 0.0105f + (0.035f / npow(aod::femtodreamparticle::pt, 1.1f))),
+    ifnode(Option.DCACutPtDep, (nabs(aod::femtodreamparticle::tempFitVar) <= 0.004f + 0.013f / aod::femtodreamparticle::pt),
            ((aod::femtodreamparticle::tempFitVar >= Track1.TempFitVarMin) &&
             (aod::femtodreamparticle::tempFitVar <= Track1.TempFitVarMax)));
 
@@ -151,7 +151,7 @@ struct femtoDreamPairTaskTrackTrack {
     (aod::femtodreamparticle::pt <= Track1.PtMax) &&
     (aod::femtodreamparticle::eta >= Track1.EtaMin) &&
     (aod::femtodreamparticle::eta < Track1.EtaMax) &&
-    ifnode(Option.DCACutPtDep, (nabs(aod::femtodreamparticle::tempFitVar) <= 0.0105f + (0.035f / npow(aod::femtodreamparticle::pt, 1.1f))),
+    ifnode(Option.DCACutPtDep, (nabs(aod::femtodreamparticle::tempFitVar) <= 0.004f + 0.013f / aod::femtodreamparticle::pt),
            ((aod::femtodreamparticle::tempFitVar >= Track1.TempFitVarMin) &&
             (aod::femtodreamparticle::tempFitVar <= Track1.TempFitVarMax)));
 
