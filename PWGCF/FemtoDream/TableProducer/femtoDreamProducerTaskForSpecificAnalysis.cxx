@@ -328,9 +328,7 @@ struct FemtoDreamProducerTaskForSpecificAnalysis {
   /// \param col subscribe to the collision table (Data)
   /// \param parts subscribe to the femtoDreamParticleTable
   void processCollisionsWithNTracksAndNV0(const o2::aod::FDCollision& col,
-                                          o2::aod::FDMCCollisions&,
-                                          const o2::aod::FDParticles& parts,
-                                          o2::aod::FDMCParticles&)
+                                          const o2::aod::FDParticles& parts)
   {
     eventRegistry.fill(HIST("hStatistiscs"), 0);
     auto thegroupSelectedParts = selectedParts->sliceByCached(aod::femtodreamparticle::fdCollisionId, col.globalIndex(), cache);
