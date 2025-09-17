@@ -37,6 +37,7 @@ class FemtoDreamEventHisto
     mHistogramRegistry->add("Event/hZvtx", "; vtx_{z} (cm); Entries", kTH1F, {{300, -12.5, 12.5}});
     mHistogramRegistry->add("Event/hMultPercentile", "; Multiplicity Percentile (FT0M); Entries", kTH1F, {{110, 0, 110}});
     mHistogramRegistry->add("Event/hMultNTr", "; Multiplicity (MultNtr); Entries", kTH1F, {{200, 0, 200}});
+    mHistogramRegistry->add("Event/hSphericity", ";Sphericity", kTH1F, {{102, -0.1, 1.1}});
     mHistogramRegistry->add("Event/hMultNTrVsZvtx", "; Multiplicity (MultNtr); vtx_{z} (cm)", kTH2F, {{200, 0, 200}, {300, -12.5, 12.5}});
     mHistogramRegistry->add("Event/hMultNTrVsMultPercentile", "; Multiplicity (MultNtr); Multiplicity Percentile (FT0M)", kTH2F, {{200, 0, 200}, {110, 0, 110}});
     mHistogramRegistry->add("Event/hMultPercentileVsZvtx", "; Multiplicity Percentile (FT0M); vtx_{z} (cm)", kTH2F, {{110, 0, 110}, {300, -12.5, 12.5}});
@@ -56,6 +57,7 @@ class FemtoDreamEventHisto
       mHistogramRegistry->fill(HIST("Event/hZvtx"), col.posZ());
       mHistogramRegistry->fill(HIST("Event/hMultPercentile"), col.multV0M());
       mHistogramRegistry->fill(HIST("Event/hMultNTr"), col.multNtr());
+      mHistogramRegistry->fill(HIST("Event/hSphericity"), col.sphericity());
       mHistogramRegistry->fill(HIST("Event/hMultNTrVsZvtx"), col.multNtr(), col.posZ());
       mHistogramRegistry->fill(HIST("Event/hMultNTrVsMultPercentile"), col.multNtr(), col.multV0M());
       mHistogramRegistry->fill(HIST("Event/hMultPercentileVsZvtx"), col.multV0M(), col.posZ());

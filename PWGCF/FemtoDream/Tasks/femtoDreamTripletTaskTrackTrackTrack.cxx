@@ -43,15 +43,23 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   SliceCache cache;
   Preslice<aod::FDParticles> perCol = aod::femtodreamparticle::fdCollisionId;
 
-  using MaskedCollisions = soa::Join<aod::FDCollisions, aod::FDColMasks>;
+
+  Configurable<float> confSphericityMin{"confSphericityMin", 0.6, "Minimum Sphericity Percentile"};
+  Configurable<float> confSphericityMax{"confSphericityMax", 1, "Maximum Sphericity Percentile"};
+
+  Filter EventSphericity = aod::femtodreamcollision::sphericity >= confSphericityMin && aod::femtodreamcollision::sphericity <= confSphericityMax;
+  using FilteredFDCollisions = soa::Filtered<aod::FDCollisions>;
+  using FilteredFDCollision = FilteredFDCollisions::iterator;
+
+  using MaskedCollisions =  soa::Filtered<soa::Join<aod::FDCollisions, aod::FDColMasks>>;
   using MaskedCollision = MaskedCollisions::iterator;
 
 
-  using MCCollisions = soa::Join<aod::FDCollisions, aod::FDMCCollLabels>;
+  using MCCollisions = soa::Filtered<soa::Join<aod::FDCollisions, aod::FDMCCollLabels>>;
   using MCCollision = MCCollisions::iterator;
 
 
-  using MaskedMCCollisions = soa::Join<aod::FDCollisions, aod::FDMCCollLabels, aod::FDColMasks>;
+  using MaskedMCCollisions = soa::Filtered<soa::Join<aod::FDCollisions, aod::FDMCCollLabels, aod::FDColMasks>>;
   using MaskedMCCollision = MaskedMCCollisions::iterator;
 
   aod::femtodreamcollision::BitMaskType MaskBit = -1;
@@ -87,7 +95,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   Configurable<o2::aod::femtodreamparticle::cutContainerType> ConfCutPart{"ConfCutPart", 5542474, "Track - Selection bit from cutCulator"};
 
   /// Partition for selected particles
-  Partition<aod::FDParticles> SelectedParts = ((aod::femtodreamparticle::phi > float(0.369) && aod::femtodreamparticle::phi < float(0.678)) ||
+  Partition<aod::FDParticles> SelectedParts = /*((aod::femtodreamparticle::phi > float(0.369) && aod::femtodreamparticle::phi < float(0.678)) ||
                                               (aod::femtodreamparticle::phi > float(0.718) && aod::femtodreamparticle::phi < float(1.027)) ||
                                               (aod::femtodreamparticle::phi > float(1.067) && aod::femtodreamparticle::phi < float(1.376)) ||
                                               (aod::femtodreamparticle::phi > float(1.416) && aod::femtodreamparticle::phi < float(1.725)) ||
@@ -104,7 +112,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
                                               (aod::femtodreamparticle::phi > float(5.256) && aod::femtodreamparticle::phi < float(5.565)) ||
                                               (aod::femtodreamparticle::phi > float(5.605) && aod::femtodreamparticle::phi < float(5.914)) ||
                                               (aod::femtodreamparticle::phi > float(5.954) && aod::femtodreamparticle::phi < float(6.263)) ||
-                                              (aod::femtodreamparticle::phi > float(0.02)   && aod::femtodreamparticle::phi < float(0.329)))&&
+                                              (aod::femtodreamparticle::phi > float(0.02)   && aod::femtodreamparticle::phi < float(0.329)))&&*/
                                               //((aod::femtodreamparticle::eta > ConfRejectEtaAt0) || (aod::femtodreamparticle::eta < -ConfRejectEtaAt0)) &&
                                               (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kTrack)) &&
                                               ifnode(aod::femtodreamparticle::pt * (nexp(aod::femtodreamparticle::eta) + nexp(-1.f * aod::femtodreamparticle::eta)) / 2.f <= ConfPIDthrMom, ncheckbit(aod::femtodreamparticle::pidcut, ConfTPCPIDBit), ncheckbit(aod::femtodreamparticle::pidcut, ConfTPCTOFPIDBit)) &&
@@ -347,7 +355,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   /// process function to call doSameEvent with Data
   /// \param col subscribe to the collision table (Data)
   /// \param parts subscribe to the femtoDreamParticleTable
-  void processSameEvent(o2::aod::FDCollision& col,
+  void processSameEvent(FilteredFDCollision& col,
                         o2::aod::FDParticles& parts)
   {
     fillCollision<false>(col);
@@ -475,7 +483,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   /// process function for to call doMixedEvent with Data
   /// @param cols subscribe to the collisions table (Data)
   /// @param parts subscribe to the femtoDreamParticleTable
-  void processMixedEvent(o2::aod::FDCollisions& cols,
+  void processMixedEvent(FilteredFDCollisions& cols,
                          o2::aod::FDParticles& parts)
   {
     for (auto& [collision1, collision2, collision3] : soa::selfCombinations(colBinning, ConfNEventsMix, -1, cols, cols, cols)) {
