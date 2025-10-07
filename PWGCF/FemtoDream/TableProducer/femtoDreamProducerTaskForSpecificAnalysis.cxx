@@ -44,6 +44,7 @@ struct FemtoDreamProducerTaskForSpecificAnalysis {
 
   Produces<aod::StoredFDCollisions> outputCollision;
   Produces<aod::StoredFDParticles> outputParts;
+  Produces<aod::StoredFDExtParticles> outputPartsExt;
   Produces<aod::StoredFDMCCollisions> outputMCCollision;
   Produces<aod::StoredFDMCCollLabels> outputCollsMCLabels;
   Produces<aod::StoredFDMCParticles> outputPartsMC;
@@ -54,6 +55,9 @@ struct FemtoDreamProducerTaskForSpecificAnalysis {
   using MCCollisions = soa::Join<aod::FDCollisions, aod::FDMCCollLabels>;
   using MCCollision = MCCollisions::iterator;
 
+  using WithExtParticles = soa::Join<aod::FDParticles, aod::FDExtParticles>;
+  using WithExtParticle = WithExtParticles::iterator;
+
   using MCParticles = soa::Join<aod::FDParticles, aod::FDMCLabels>;
   using MCParticle = MCParticles::iterator;
 
@@ -61,6 +65,7 @@ struct FemtoDreamProducerTaskForSpecificAnalysis {
   using MCParticleExt = MCParticlesExt::iterator;
 
   Preslice<aod::FDParticles> perCol = aod::femtodreamparticle::fdCollisionId;
+  Preslice<WithExtParticles> perColExt = aod::femtodreamparticle::fdCollisionId;
   float mMassOne = -999, mMassTwo = -999, mMassThree = -999;
   int collisions = 0;
 
@@ -134,7 +139,8 @@ struct FemtoDreamProducerTaskForSpecificAnalysis {
     if ((doprocessCollisionsWithNTracksAndNCascades && doprocessCollisionsWithNTracksAndNV0)) {
       LOG(fatal) << "Never run V0s and Cascades together as this will DOUBLE the track number and induce self correlations!";
     }
-    if ((doprocessCollisionsWithNTracksAndNCascades && doprocessCollisionsWithNTracksAndNV0MC) || (doprocessCollisionsWithNTracksAndNV0 && doprocessCollisionsWithNTracksAndNV0MC) || (doprocessCollisionsWithNTracksAndNCascades && doprocessCollisionsWithNTracksAndNV0MCExt) || (doprocessCollisionsWithNTracksAndNV0 && doprocessCollisionsWithNTracksAndNV0MCExt) ) {
+    if ((doprocessCollisionsWithNTracksAndNCascades && doprocessCollisionsWithNTracksAndNV0MC) || (doprocessCollisionsWithNTracksAndNV0 && doprocessCollisionsWithNTracksAndNV0MC) || (doprocessCollisionsWithNTracksAndNCascades && doprocessCollisionsWithNTracksAndNV0MCExt) || (doprocessCollisionsWithNTracksAndNV0 && doprocessCollisionsWithNTracksAndNV0MCExt) ||
+          (doprocessCollisionsWithNTracksAndNV0WithExt && doprocessCollisionsWithNTracksAndNCascades) || (doprocessCollisionsWithNTracksAndNV0WithExt && doprocessCollisionsWithNTracksAndNV0MC) || (doprocessCollisionsWithNTracksAndNV0WithExt && doprocessCollisionsWithNTracksAndNV0MCExt)|| (doprocessCollisionsWithNTracksAndNV0WithExt && doprocessCollisionsWithNTracksAndNV0)) {
       LOG(fatal) << "Never run data and MC together!";
     }
   }
@@ -147,7 +153,7 @@ struct FemtoDreamProducerTaskForSpecificAnalysis {
   /// @param groupSelectedTracks partition for the first particle passed by the process function
   /// @param groupSelectedV0s partition for the second particle passed by the process function
   /// @param parts femtoDreamParticles table
-  template <bool isMC, bool isMCExt, typename CollisionType, typename PartitionType, typename PartType>
+  template <bool isWithExt, bool isMC, bool isMCExt, typename CollisionType, typename PartitionType, typename PartType>
   void createSpecifiedDerivedData(CollisionType col, PartitionType groupSelectedTracks, PartitionType groupSelectedV0s, PartType parts)
   {
     /// check tracks
@@ -231,6 +237,58 @@ struct FemtoDreamProducerTaskForSpecificAnalysis {
                       femtoParticle.mLambda(),
                       femtoParticle.mAntiLambda());
           tmpIDtrack.push_back(femtoParticle.index());
+
+          if constexpr (isWithExt){
+               outputPartsExt(femtoParticle.sign(),
+               femtoParticle.tpcNClsFound(),
+               femtoParticle.tpcNClsFindable(),
+               femtoParticle.tpcNClsCrossedRows(),
+               femtoParticle.tpcNClsShared(),
+               femtoParticle.tpcInnerParam(),
+               femtoParticle.itsNCls(),
+               femtoParticle.itsNClsInnerBarrel(),
+               femtoParticle.dcaXY(),
+               femtoParticle.dcaZ(),
+               femtoParticle.tpcSignal(),
+               femtoParticle.tpcNSigmaEl(),
+               femtoParticle.tpcNSigmaPi(),
+               femtoParticle.tpcNSigmaKa(),
+               femtoParticle.tpcNSigmaPr(),
+               femtoParticle.tpcNSigmaDe(),
+               femtoParticle.tpcNSigmaTr(),
+               femtoParticle.tpcNSigmaHe(),
+               femtoParticle.tofNSigmaEl(),
+               femtoParticle.tofNSigmaPi(),
+               femtoParticle.tofNSigmaKa(),
+               femtoParticle.tofNSigmaPr(),
+               femtoParticle.tofNSigmaDe(),
+               femtoParticle.tofNSigmaTr(),
+               femtoParticle.tofNSigmaHe(),
+               femtoParticle.itsSignal(),
+               femtoParticle.itsNSigmaEl(),
+               femtoParticle.itsNSigmaPi(),
+               femtoParticle.itsNSigmaKa(),
+               femtoParticle.itsNSigmaPr(),
+               femtoParticle.itsNSigmaDe(),
+               femtoParticle.itsNSigmaTr(),
+               femtoParticle.itsNSigmaHe(),
+               femtoParticle.daughDCA(),
+               femtoParticle.transRadius(),
+               femtoParticle.decayVtxX(),
+               femtoParticle.decayVtxY(),
+               femtoParticle.decayVtxZ(),
+               femtoParticle.mKaon(),
+               femtoParticle.cascV0DCAtoPV(),
+               femtoParticle.cascDaughDCA(),
+               femtoParticle.cascTransRadius(),
+               femtoParticle.cascDecayVtxX(),
+               femtoParticle.cascDecayVtxY(),
+               femtoParticle.cascDecayVtxZ(),
+               femtoParticle.mOmega());
+
+          }
+
+
           if constexpr (isMC){
             if(femtoParticle.has_fdMCParticle()){
               outputPartsMC(femtoParticle.fdMCParticle().partOriginMCTruth(), femtoParticle.fdMCParticle().pdgMCTruth(), femtoParticle.fdMCParticle().pt(), femtoParticle.fdMCParticle().eta(), femtoParticle.fdMCParticle().phi());
@@ -269,6 +327,56 @@ struct FemtoDreamProducerTaskForSpecificAnalysis {
                       childIDs,
                       femtoParticle.mLambda(),
                       femtoParticle.mAntiLambda());
+
+          if constexpr (isWithExt){
+               outputPartsExt(femtoParticle.sign(),
+               femtoParticle.tpcNClsFound(),
+               femtoParticle.tpcNClsFindable(),
+               femtoParticle.tpcNClsCrossedRows(),
+               femtoParticle.tpcNClsShared(),
+               femtoParticle.tpcInnerParam(),
+               femtoParticle.itsNCls(),
+               femtoParticle.itsNClsInnerBarrel(),
+               femtoParticle.dcaXY(),
+               femtoParticle.dcaZ(),
+               femtoParticle.tpcSignal(),
+               femtoParticle.tpcNSigmaEl(),
+               femtoParticle.tpcNSigmaPi(),
+               femtoParticle.tpcNSigmaKa(),
+               femtoParticle.tpcNSigmaPr(),
+               femtoParticle.tpcNSigmaDe(),
+               femtoParticle.tpcNSigmaTr(),
+               femtoParticle.tpcNSigmaHe(),
+               femtoParticle.tofNSigmaEl(),
+               femtoParticle.tofNSigmaPi(),
+               femtoParticle.tofNSigmaKa(),
+               femtoParticle.tofNSigmaPr(),
+               femtoParticle.tofNSigmaDe(),
+               femtoParticle.tofNSigmaTr(),
+               femtoParticle.tofNSigmaHe(),
+               femtoParticle.itsSignal(),
+               femtoParticle.itsNSigmaEl(),
+               femtoParticle.itsNSigmaPi(),
+               femtoParticle.itsNSigmaKa(),
+               femtoParticle.itsNSigmaPr(),
+               femtoParticle.itsNSigmaDe(),
+               femtoParticle.itsNSigmaTr(),
+               femtoParticle.itsNSigmaHe(),
+               femtoParticle.daughDCA(),
+               femtoParticle.transRadius(),
+               femtoParticle.decayVtxX(),
+               femtoParticle.decayVtxY(),
+               femtoParticle.decayVtxZ(),
+               femtoParticle.mKaon(),
+               femtoParticle.cascV0DCAtoPV(),
+               femtoParticle.cascDaughDCA(),
+               femtoParticle.cascTransRadius(),
+               femtoParticle.cascDecayVtxX(),
+               femtoParticle.cascDecayVtxY(),
+               femtoParticle.cascDecayVtxZ(),
+               femtoParticle.mOmega());
+
+          }
           if constexpr (isMC){
             if(femtoParticle.has_fdMCParticle()){
               outputPartsMC(femtoParticle.fdMCParticle().partOriginMCTruth(), femtoParticle.fdMCParticle().pdgMCTruth(), femtoParticle.fdMCParticle().pt(), femtoParticle.fdMCParticle().eta(), femtoParticle.fdMCParticle().phi());
@@ -334,9 +442,28 @@ struct FemtoDreamProducerTaskForSpecificAnalysis {
     auto thegroupSelectedParts = selectedParts->sliceByCached(aod::femtodreamparticle::fdCollisionId, col.globalIndex(), cache);
     auto thegroupSelectedV0s = selectedV0s->sliceByCached(aod::femtodreamparticle::fdCollisionId, col.globalIndex(), cache);
 
-    createSpecifiedDerivedData<false, false>(col, thegroupSelectedParts, thegroupSelectedV0s, parts);
+    createSpecifiedDerivedData<false, false, false>(col, thegroupSelectedParts, thegroupSelectedV0s, parts);
   }
   PROCESS_SWITCH(FemtoDreamProducerTaskForSpecificAnalysis, processCollisionsWithNTracksAndNV0, "Enable producing data with ppp collisions for data", true);
+
+
+
+  /// process function to create derived data with only collisions containing n tracks
+  /// \param col subscribe to the collision table (Data)
+  /// \param parts subscribe to the femtoDreamParticleTable
+  void processCollisionsWithNTracksAndNV0WithExt(const o2::aod::FDCollision& col,
+                                          const WithExtParticles& parts)
+  {
+    std::cout<<"start processCollisionsWithNTracksAndNV0MCExt"<<std::endl;
+    eventRegistry.fill(HIST("hStatistiscs"), 0);
+    std::cout<<"after fill"<<std::endl;
+    auto thegroupSelectedParts = selectedParts->sliceByCached(aod::femtodreamparticle::fdCollisionId, col.globalIndex(), cache);
+    auto thegroupSelectedV0s = selectedV0s->sliceByCached(aod::femtodreamparticle::fdCollisionId, col.globalIndex(), cache);
+    std::cout<<"after slice"<<std::endl;
+
+    createSpecifiedDerivedData<true, false, false>(col, thegroupSelectedParts, thegroupSelectedV0s, parts);
+  }
+  PROCESS_SWITCH(FemtoDreamProducerTaskForSpecificAnalysis, processCollisionsWithNTracksAndNV0WithExt, "Enable producing data with ppp collisions for data with extended particle table", false);
 
 
   /// process function to create derived data with only collisions containing n tracks
@@ -351,7 +478,7 @@ struct FemtoDreamProducerTaskForSpecificAnalysis {
     auto thegroupSelectedParts = selectedPartsMC->sliceByCached(aod::femtodreamparticle::fdCollisionId, col.globalIndex(), cache);
     auto thegroupSelectedV0s = selectedV0sMC->sliceByCached(aod::femtodreamparticle::fdCollisionId, col.globalIndex(), cache);
 
-    //createSpecifiedDerivedData<true, false>(col, thegroupSelectedParts, thegroupSelectedV0s, parts);
+    createSpecifiedDerivedData<false, true, false>(col, thegroupSelectedParts, thegroupSelectedV0s, parts);
   }
   PROCESS_SWITCH(FemtoDreamProducerTaskForSpecificAnalysis, processCollisionsWithNTracksAndNV0MC, "Enable producing data with ppp collisions for MC with ext tables", false);
 
@@ -367,7 +494,7 @@ struct FemtoDreamProducerTaskForSpecificAnalysis {
     auto thegroupSelectedParts = selectedPartsMCExt->sliceByCached(aod::femtodreamparticle::fdCollisionId, col.globalIndex(), cache);
     auto thegroupSelectedV0s = selectedV0sMCExt->sliceByCached(aod::femtodreamparticle::fdCollisionId, col.globalIndex(), cache);
 
-    createSpecifiedDerivedData<true, true>(col, thegroupSelectedParts, thegroupSelectedV0s, parts);
+    createSpecifiedDerivedData<false, true, true>(col, thegroupSelectedParts, thegroupSelectedV0s, parts);
   }
   PROCESS_SWITCH(FemtoDreamProducerTaskForSpecificAnalysis, processCollisionsWithNTracksAndNV0MCExt, "Enable producing data with ppp collisions for MC with ext tables", false);
 

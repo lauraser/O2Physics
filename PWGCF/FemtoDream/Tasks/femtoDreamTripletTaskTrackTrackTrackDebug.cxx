@@ -88,42 +88,21 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   Configurable<bool> ConfUse3D{"ConfUse3D", false, "Enable three dimensional histogramms (to be used only for analysis with high statistics): k* vs mT vs multiplicity"};
   Configurable<bool> ConfDCACutPtDep{"ConfDCACutPtDep", false, "Use pt dependent dca cut for tracks"};
 
-
-
-
-  
   // Which particles to analyse; currently support only for same species and cuts triplets
   Configurable<int> ConfPDGCodePart{"ConfPDGCodePart", 2212, "Particle PDG code"};
   Configurable<o2::aod::femtodreamparticle::cutContainerType> ConfCutPart{"ConfCutPart", 5542474, "Track - Selection bit from cutCulator"};
 
   /// Partition for selected particles
-  Partition<aod::FDParticles> SelectedParts = /*((aod::femtodreamparticle::phi > float(0.369) && aod::femtodreamparticle::phi < float(0.678)) ||
-                                              (aod::femtodreamparticle::phi > float(0.718) && aod::femtodreamparticle::phi < float(1.027)) ||
-                                              (aod::femtodreamparticle::phi > float(1.067) && aod::femtodreamparticle::phi < float(1.376)) ||
-                                              (aod::femtodreamparticle::phi > float(1.416) && aod::femtodreamparticle::phi < float(1.725)) ||
-                                              (aod::femtodreamparticle::phi > float(1.765) && aod::femtodreamparticle::phi < float(2.074)) ||
-                                              (aod::femtodreamparticle::phi > float(2.114) && aod::femtodreamparticle::phi < float(2.423)) ||
-                                              (aod::femtodreamparticle::phi > float(2.463) && aod::femtodreamparticle::phi < float(2.772)) ||
-                                              (aod::femtodreamparticle::phi > float(2.812) && aod::femtodreamparticle::phi < float(3.122)) ||
-                                              (aod::femtodreamparticle::phi > float(3.162) && aod::femtodreamparticle::phi < float(3.471)) ||
-                                              (aod::femtodreamparticle::phi > float(3.511) && aod::femtodreamparticle::phi < float(3.820)) ||
-                                              (aod::femtodreamparticle::phi > float(3.860) && aod::femtodreamparticle::phi < float(4.169)) ||
-                                              (aod::femtodreamparticle::phi > float(4.209) && aod::femtodreamparticle::phi < float(4.518)) ||
-                                              (aod::femtodreamparticle::phi > float(4.558) && aod::femtodreamparticle::phi < float(4.867)) ||
-                                              (aod::femtodreamparticle::phi > float(4.907) && aod::femtodreamparticle::phi < float(5.216)) ||
-                                              (aod::femtodreamparticle::phi > float(5.256) && aod::femtodreamparticle::phi < float(5.565)) ||
-                                              (aod::femtodreamparticle::phi > float(5.605) && aod::femtodreamparticle::phi < float(5.914)) ||
-                                              (aod::femtodreamparticle::phi > float(5.954) && aod::femtodreamparticle::phi < float(6.263)) ||
-                                              (aod::femtodreamparticle::phi > float(0.02)   && aod::femtodreamparticle::phi < float(0.329)))&&*/
-                                              //((aod::femtodreamparticle::eta > ConfRejectEtaAt0) || (aod::femtodreamparticle::eta < -ConfRejectEtaAt0)) &&
-                                              (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kTrack)) &&
+  Partition<soa::Join<o2::aod::FDParticles,o2::aod::FDExtParticles>> SelectedParts = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kTrack)) &&
                                               ifnode(aod::femtodreamparticle::pt * (nexp(aod::femtodreamparticle::eta) + nexp(-1.f * aod::femtodreamparticle::eta)) / 2.f <= ConfPIDthrMom, ncheckbit(aod::femtodreamparticle::pidcut, ConfTPCPIDBit), ncheckbit(aod::femtodreamparticle::pidcut, ConfTPCTOFPIDBit)) &&
                                               (ncheckbit(aod::femtodreamparticle::cut, ConfCutPart)) &&
                                               (aod::femtodreamparticle::pt < ConfMaxpT) &&
                                               (aod::femtodreamparticle::pt > ConfMinpT) &&
                                               ifnode(ConfDCACutPtDep, (nabs(aod::femtodreamparticle::tempFitVar) <= 0.004f + 0.013f / aod::femtodreamparticle::pt),
                                                      ((aod::femtodreamparticle::tempFitVar >= ConfMinDCAxy) &&
-                                                      (aod::femtodreamparticle::tempFitVar <= ConfMaxDCAxy)));
+                                                      (aod::femtodreamparticle::tempFitVar <= ConfMaxDCAxy)))&&
+                                              (aod::femtodreamparticle::TPCNSigmaEl> 3) &&(aod::femtodreamparticle::TPCNSigmaPi> 3)&&
+                                              (aod::femtodreamparticle::TPCNSigmaKa> 3) &&(aod::femtodreamparticle::TPCNSigmaDe> 3);
   ;
 
   Partition<soa::Join<aod::FDParticles, aod::FDMCLabels>> SelectedPartsMC = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kTrack)) &&
@@ -133,7 +112,9 @@ struct femtoDreamTripletTaskTrackTrackTrack {
                                                                             (aod::femtodreamparticle::pt > ConfMinpT) &&
                                                                             ifnode(ConfDCACutPtDep, (nabs(aod::femtodreamparticle::tempFitVar) <= 0.004f + 0.013f / aod::femtodreamparticle::pt),
                                                                                    ((aod::femtodreamparticle::tempFitVar >= ConfMinDCAxy) &&
-                                                                                    (aod::femtodreamparticle::tempFitVar <= ConfMaxDCAxy)));
+                                                                                    (aod::femtodreamparticle::tempFitVar <= ConfMaxDCAxy)))&&
+                                                                            (aod::femtodreamparticle::TPCNSigmaEl> 3) &&(aod::femtodreamparticle::TPCNSigmaPi> 3)&&
+                                                                            (aod::femtodreamparticle::TPCNSigmaKa> 3) &&(aod::femtodreamparticle::TPCNSigmaDe> 3);
   ;
 
   /// Histogramming of Selected Particles
@@ -216,6 +197,15 @@ struct femtoDreamTripletTaskTrackTrackTrack {
     ThreeBodyQARegistry.add("TripletTaskQA/SphericityVsMultNtr", ";sphericity; multNtr", kTH2F, {{100, 0,1}, {100, 0, 300}});
     ThreeBodyQARegistry.add("TripletTaskQA/SphericityVsMultNtr_SE", ";sphericity; multNtr", kTH2F, {{100, 0,1}, {100, 0, 300}});
 
+
+    ThreeBodyQARegistry.add("TrackQA/TPCNClsFound", ";TPCNClsFound", kTH1F, {{200, 0, 165}});
+    ThreeBodyQARegistry.add("TrackQA/TPCNClsFindable", ";TPCNClsFindable", kTH1F, {{200, 0, 165}});
+    ThreeBodyQARegistry.add("TrackQA/TPCNClsCrossedRows", ";TPCNClsCrossedRows", kTH1F, {{200, 0, 165}});
+    ThreeBodyQARegistry.add("TrackQA/TPCNClsShared", ";TPCNClsShared", kTH1F, {{200, 0, 165}});
+    ThreeBodyQARegistry.add("TrackQA/TPCSignal", ";p_{T}; TPCSignal", kTH2F, {{400, 0, 4}, {400, -1000, 1000}});
+
+    
+
     sameEventCont.init(&resultRegistry, ConfQ3Bins, ConfMultBins, ConfIsMC);
     mixedEventCont.init(&resultRegistry, ConfQ3Bins, ConfMultBins, ConfIsMC);
     sameEventCont.setPDGCodes(ConfPDGCodePart, ConfPDGCodePart, ConfPDGCodePart);
@@ -288,6 +278,11 @@ struct femtoDreamTripletTaskTrackTrackTrack {
     for (auto& part : groupSelectedParts) {
       numberOfTracksPassingSelection = numberOfTracksPassingSelection + 1;
       trackHistoSelectedParts.fillQA<isMC, false>(part, aod::femtodreamparticle::kPt, multCol, centCol);
+      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCNClsFound"), part.tpcNClsFound());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCNClsFindable"), part.tpcNClsFindable());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCNClsCrossedRows"), part.tpcNClsCrossedRows());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCNClsShared"), part.tpcNClsShared());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCSignal"), part.pt(), part.tpcSignal());
     }
     ThreeBodyQARegistry.fill(HIST("TripletTaskQA/NumberOfTacksPassingSelection"), numberOfTracksPassingSelection);
 
@@ -363,7 +358,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   /// \param col subscribe to the collision table (Data)
   /// \param parts subscribe to the femtoDreamParticleTable
   void processSameEvent(FilteredFDCollision& col,
-                        o2::aod::FDParticles& parts)
+                        soa::Join<o2::aod::FDParticles,o2::aod::FDExtParticles>& parts)
   {
     fillCollision<false>(col);
     auto thegroupSelectedParts = SelectedParts->sliceByCached(aod::femtodreamparticle::fdCollisionId, col.globalIndex(), cache);
@@ -381,7 +376,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   /// process function to call doSameEvent with Data which has a mask for containing particles or not
   /// \param col subscribe to the collision table (Data)
   /// \param parts subscribe to the femtoDreamParticleTable
-  void processSameEventMasked(MaskedCollision& col, o2::aod::FDParticles& parts)
+  void processSameEventMasked(MaskedCollision& col, soa::Join<o2::aod::FDParticles,o2::aod::FDExtParticles>& parts)
   {
     fillCollision<false>(col);
     auto thegroupSelectedParts = SelectedParts->sliceByCached(aod::femtodreamparticle::fdCollisionId, col.globalIndex(), cache);
@@ -401,7 +396,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   /// \param FemtoDreamMCParticles subscribe to the Monte Carlo truth table
   void processSameEventMC(MCCollision & col,
                           o2::aod::FDMCCollisions&,
-                          soa::Join<o2::aod::FDParticles, o2::aod::FDMCLabels>& parts,
+                          soa::Join<o2::aod::FDParticles,o2::aod::FDExtParticles, o2::aod::FDMCLabels>& parts,
                           o2::aod::FDMCParticles&)
   {
     fillCollision<false>(col);
@@ -423,7 +418,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   /// \param FemtoDreamMCParticles subscribe to the Monte Carlo truth table
   void processSameEventMCMasked(MaskedMCCollision& col,
                                 o2::aod::FDMCCollisions&,
-                                soa::Join<o2::aod::FDParticles, o2::aod::FDMCLabels>& parts,
+                                soa::Join<o2::aod::FDParticles, o2::aod::FDMCLabels, o2::aod::FDExtParticles>& parts,
                                 o2::aod::FDMCParticles&)
   {
     fillCollision<false>(col);
@@ -491,7 +486,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   /// @param cols subscribe to the collisions table (Data)
   /// @param parts subscribe to the femtoDreamParticleTable
   void processMixedEvent(FilteredFDCollisions& cols,
-                         o2::aod::FDParticles& parts)
+                         soa::Join<o2::aod::FDParticles, o2::aod::FDExtParticles>& parts)
   {
     for (auto& [collision1, collision2, collision3] : soa::selfCombinations(colBinning, ConfNEventsMix, -1, cols, cols, cols)) {
       const int multiplicityCol = collision1.multNtr();
@@ -517,7 +512,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   /// process function for to call doMixedEvent with Data which has a mask for containing particles or not
   /// @param cols subscribe to the collisions table (Data)
   /// @param parts subscribe to the femtoDreamParticleTable
-  void processMixedEventMasked(MaskedCollisions& cols, o2::aod::FDParticles& parts)
+  void processMixedEventMasked(MaskedCollisions& cols, osoa::Join<o2::aod::FDParticles, o2::aod::FDExtParticles>& parts)
   {
     Partition<MaskedCollisions> PartitionMaskedCol1 = (ConfTracksInMixedEvent == 1 && (aod::femtodreamcollision::bitmaskTrackOne & MaskBit) == MaskBit) ||
                                                       (ConfTracksInMixedEvent == 2 && (aod::femtodreamcollision::bitmaskTrackTwo & MaskBit) == MaskBit) ||
@@ -551,8 +546,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   /// @param parts subscribe to joined table FemtoDreamParticles and FemtoDreamMCLables to access Monte Carlo truth
   /// @param FemtoDreamMCParticles subscribe to the Monte Carlo truth table
   void processMixedEventMC(MCCollisions& cols,
-                           o2::aod::FDMCCollisions&,
-                           soa::Join<o2::aod::FDParticles, o2::aod::FDMCLabels>& parts,
+                           soa::Join<o2::aod::FDParticles, o2::aod::FDMCLabels, o2::aod::FDExtParticles>& parts,
                            o2::aod::FDMCParticles&)
   {
     for (auto& [collision1, collision2, collision3] : soa::selfCombinations(colBinning, ConfNEventsMix, -1, cols, cols, cols)) {
@@ -584,7 +578,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   /// @param FemtoDreamMCParticles subscribe to the Monte Carlo truth table
   void processMixedEventMCMasked(MaskedMCCollisions& cols,
                                  o2::aod::FDMCCollisions&,
-                                 soa::Join<o2::aod::FDParticles, o2::aod::FDMCLabels>& parts,
+                                 soa::Join<o2::aod::FDParticles, o2::aod::FDMCLabels, o2::aod::FDExtParticles>& parts,
                                  o2::aod::FDMCParticles&)
   {
     Partition<MaskedMCCollisions> PartitionMaskedCol1 = (ConfTracksInMixedEvent == 1 && (aod::femtodreamcollision::bitmaskTrackOne & MaskBit) == MaskBit) ||
