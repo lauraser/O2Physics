@@ -66,6 +66,7 @@ struct FemtoDreamProducerTaskForSpecificAnalysis {
 
   Preslice<aod::FDParticles> perCol = aod::femtodreamparticle::fdCollisionId;
   Preslice<WithExtParticles> perColExt = aod::femtodreamparticle::fdCollisionId;
+  
   float mMassOne = -999, mMassTwo = -999, mMassThree = -999;
   int collisions = 0;
 
