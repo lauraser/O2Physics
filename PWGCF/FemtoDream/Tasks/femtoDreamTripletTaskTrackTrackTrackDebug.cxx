@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file femtoDreamTripletTaskTrackTrackTrack.cxx
+/// \file femtoDreamTripletTaskTrackTrackTrackDebug.cxx
 /// \brief Tasks that reads the track tables and creates track triplets; only three identical particles can be used
 /// \author Laura Serksnyte, TU München, laura.serksnyte@tum.de
 
@@ -39,7 +39,7 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using namespace o2::soa;
 
-struct femtoDreamTripletTaskTrackTrackTrack {
+struct femtoDreamTripletTaskTrackTrackTrackDebug {
   SliceCache cache;
   Preslice<aod::FDParticles> perCol = aod::femtodreamparticle::fdCollisionId;
 
@@ -87,6 +87,11 @@ struct femtoDreamTripletTaskTrackTrackTrack {
   Configurable<bool> ConfIsMC{"ConfIsMC", false, "Enable additional Histogramms in the case of a MonteCarlo Run"};
   Configurable<bool> ConfUse3D{"ConfUse3D", false, "Enable three dimensional histogramms (to be used only for analysis with high statistics): k* vs mT vs multiplicity"};
   Configurable<bool> ConfDCACutPtDep{"ConfDCACutPtDep", false, "Use pt dependent dca cut for tracks"};
+  Configurable<bool> ConfDCACutPtDepZ{"ConfDCACutPtDepZ", false, "Use pt dependent dca z cut for tracks"};
+  Configurable<float> ConfPIDRejectionCut{"ConfPIDRejectionCut", 1.f, "PID rejection cut value in sigma units"};
+  Configurable<uint8_t> ConfITSRequirement{"ConfITSRequirement", 7, "ITS hit requirement"};
+  Configurable<float> ConfDCAxyMaxRequirement{"ConfDCAxyMaxRequirement", 0.05, "DCAxy max requirement"};
+  Configurable<float> ConfDCAzMaxRequirement{"ConfDCAzMaxRequirement", 0.05, "DCAz max requirement"};
 
   // Which particles to analyse; currently support only for same species and cuts triplets
   Configurable<int> ConfPDGCodePart{"ConfPDGCodePart", 2212, "Particle PDG code"};
@@ -101,20 +106,26 @@ struct femtoDreamTripletTaskTrackTrackTrack {
                                               ifnode(ConfDCACutPtDep, (nabs(aod::femtodreamparticle::tempFitVar) <= 0.004f + 0.013f / aod::femtodreamparticle::pt),
                                                      ((aod::femtodreamparticle::tempFitVar >= ConfMinDCAxy) &&
                                                       (aod::femtodreamparticle::tempFitVar <= ConfMaxDCAxy)))&&
-                                              (aod::femtodreamparticle::TPCNSigmaEl> 3) &&(aod::femtodreamparticle::TPCNSigmaPi> 3)&&
-                                              (aod::femtodreamparticle::TPCNSigmaKa> 3) &&(aod::femtodreamparticle::TPCNSigmaDe> 3);
+                                              ( nabs(aod::femtodreamparticle::tpcNSigmaEl) > ConfPIDRejectionCut) && (nabs(aod::femtodreamparticle::tpcNSigmaPi) > ConfPIDRejectionCut)&&
+                                              (nabs(aod::femtodreamparticle::tpcNSigmaKa) > ConfPIDRejectionCut) && (nabs(aod::femtodreamparticle::tpcNSigmaDe) > ConfPIDRejectionCut)&&
+                                              (aod::femtodreamparticle::itsNCls >= ConfITSRequirement) &&  (aod::track::dcaXY < ConfDCAxyMaxRequirement) && (aod::track::dcaZ < ConfDCAzMaxRequirement)&&
+                                              ifnode(ConfDCACutPtDepZ, (nabs(aod::track::dcaZ) <= 0.004f + 0.013f / aod::femtodreamparticle::pt),
+                                                     (nabs(aod::track::dcaZ)  <= ConfDCAzMaxRequirement));
   ;
 
-  Partition<soa::Join<aod::FDParticles, aod::FDMCLabels>> SelectedPartsMC = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kTrack)) &&
+  Partition<soa::Join<aod::FDParticles, o2::aod::FDExtParticles, aod::FDMCLabels>> SelectedPartsMC = (aod::femtodreamparticle::partType == uint8_t(aod::femtodreamparticle::ParticleType::kTrack)) &&
                                                                             ifnode(aod::femtodreamparticle::pt * (nexp(aod::femtodreamparticle::eta) + nexp(-1.f * aod::femtodreamparticle::eta)) / 2.f <= ConfPIDthrMom, ncheckbit(aod::femtodreamparticle::pidcut, ConfTPCPIDBit), ncheckbit(aod::femtodreamparticle::pidcut, ConfTPCTOFPIDBit)) &&
                                                                             (ncheckbit(aod::femtodreamparticle::cut, ConfCutPart)) &&
                                                                             (aod::femtodreamparticle::pt < ConfMaxpT) &&
                                                                             (aod::femtodreamparticle::pt > ConfMinpT) &&
                                                                             ifnode(ConfDCACutPtDep, (nabs(aod::femtodreamparticle::tempFitVar) <= 0.004f + 0.013f / aod::femtodreamparticle::pt),
-                                                                                   ((aod::femtodreamparticle::tempFitVar >= ConfMinDCAxy) &&
+                                                                                  ((aod::femtodreamparticle::tempFitVar >= ConfMinDCAxy) &&
                                                                                     (aod::femtodreamparticle::tempFitVar <= ConfMaxDCAxy)))&&
-                                                                            (aod::femtodreamparticle::TPCNSigmaEl> 3) &&(aod::femtodreamparticle::TPCNSigmaPi> 3)&&
-                                                                            (aod::femtodreamparticle::TPCNSigmaKa> 3) &&(aod::femtodreamparticle::TPCNSigmaDe> 3);
+                                              ( nabs(aod::femtodreamparticle::tpcNSigmaEl) > ConfPIDRejectionCut) && (nabs(aod::femtodreamparticle::tpcNSigmaPi) > ConfPIDRejectionCut)&&
+                                              (nabs(aod::femtodreamparticle::tpcNSigmaKa) > ConfPIDRejectionCut) && (nabs(aod::femtodreamparticle::tpcNSigmaDe) > ConfPIDRejectionCut)&&
+                                              (aod::femtodreamparticle::itsNCls >= ConfITSRequirement) &&  (aod::track::dcaXY < ConfDCAxyMaxRequirement) && (aod::track::dcaZ < ConfDCAzMaxRequirement)&&
+                                              ifnode(ConfDCACutPtDepZ, (nabs(aod::track::dcaZ) <= 0.004f + 0.013f / aod::femtodreamparticle::pt),
+                                                     (nabs(aod::track::dcaZ)  <= ConfDCAzMaxRequirement));
   ;
 
   /// Histogramming of Selected Particles
@@ -198,11 +209,162 @@ struct femtoDreamTripletTaskTrackTrackTrack {
     ThreeBodyQARegistry.add("TripletTaskQA/SphericityVsMultNtr_SE", ";sphericity; multNtr", kTH2F, {{100, 0,1}, {100, 0, 300}});
 
 
-    ThreeBodyQARegistry.add("TrackQA/TPCNClsFound", ";TPCNClsFound", kTH1F, {{200, 0, 165}});
-    ThreeBodyQARegistry.add("TrackQA/TPCNClsFindable", ";TPCNClsFindable", kTH1F, {{200, 0, 165}});
-    ThreeBodyQARegistry.add("TrackQA/TPCNClsCrossedRows", ";TPCNClsCrossedRows", kTH1F, {{200, 0, 165}});
-    ThreeBodyQARegistry.add("TrackQA/TPCNClsShared", ";TPCNClsShared", kTH1F, {{200, 0, 165}});
-    ThreeBodyQARegistry.add("TrackQA/TPCSignal", ";p_{T}; TPCSignal", kTH2F, {{400, 0, 4}, {400, -1000, 1000}});
+    
+        // --- unchanged 1D (examples; keep your existing ones) ---
+    ThreeBodyQARegistry.add("TrackQA/Sign",               ";sign",                         kTH1F, {{3,   -1.5,  1.5}});
+    ThreeBodyQARegistry.add("TrackQA/TPCNClsFound",       ";TPC N_{cls}^{found}",          kTH1F, {{200, 0., 165.}});
+    ThreeBodyQARegistry.add("TrackQA/TPCNClsFindable",    ";TPC N_{cls}^{findable}",       kTH1F, {{200, 0., 165.}});
+    ThreeBodyQARegistry.add("TrackQA/TPCNClsCrossedRows", ";TPC N_{cls}^{crossed rows}",   kTH1F, {{200, 0., 165.}});
+    ThreeBodyQARegistry.add("TrackQA/TPCNClsShared",      ";TPC N_{cls}^{shared}",         kTH1F, {{200, 0., 165.}});
+    ThreeBodyQARegistry.add("TrackQA/TPCInnerParam",      ";p_{T}^{TPC inner} (GeV/c)",    kTH1F, {{200, 0., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/ITSNCls",            ";ITS N_{cls}",                  kTH1F, {{10,  0., 10.}});
+    ThreeBodyQARegistry.add("TrackQA/ITSNClsIB",          ";ITS IB N_{cls}",               kTH1F, {{7,   0.,  7.}});
+    ThreeBodyQARegistry.add("TrackQA/DCAxy",              ";DCA_{xy} (cm)",                kTH1F, {{240,-1.2, 1.2}});
+    ThreeBodyQARegistry.add("TrackQA/DCAz",               ";DCA_{z} (cm)",                 kTH1F, {{300,-3.0, 3.0}});
+    ThreeBodyQARegistry.add("TrackQA/ITSSignal",          ";ITS signal (a.u.)",            kTH1F, {{400, 0., 2000.}});
+    ThreeBodyQARegistry.add("TrackQA/ITSnSigmaEl",        ";n#sigma_{ITS}(e)",             kTH1F, {{200,-10., 10.}});
+    ThreeBodyQARegistry.add("TrackQA/ITSnSigmaPi",        ";n#sigma_{ITS}(#pi)",           kTH1F, {{200,-10., 10.}});
+    ThreeBodyQARegistry.add("TrackQA/ITSnSigmaKa",        ";n#sigma_{ITS}(K)",             kTH1F, {{200,-10., 10.}});
+    ThreeBodyQARegistry.add("TrackQA/ITSnSigmaPr",        ";n#sigma_{ITS}(p)",             kTH1F, {{200,-10., 10.}});
+    ThreeBodyQARegistry.add("TrackQA/ITSnSigmaDe",        ";n#sigma_{ITS}(d)",             kTH1F, {{200,-10., 10.}});
+    ThreeBodyQARegistry.add("TrackQA/ITSnSigmaTr",        ";n#sigma_{ITS}(t)",             kTH1F, {{200,-10., 10.}});
+    ThreeBodyQARegistry.add("TrackQA/ITSnSigmaHe",        ";n#sigma_{ITS}(^{3}He)",        kTH1F, {{200,-10., 10.}});
+    ThreeBodyQARegistry.add("TrackQA/DaughDCA",           ";daughter DCA (cm)",            kTH1F, {{200, 0., 5.}});
+    ThreeBodyQARegistry.add("TrackQA/TransRadius",        ";transverse radius (cm)",       kTH1F, {{200, 0., 200.}});
+    ThreeBodyQARegistry.add("TrackQA/DecayVtxX",          ";decay vtx x (cm)",             kTH1F, {{400,-100.,100.}});
+    ThreeBodyQARegistry.add("TrackQA/DecayVtxY",          ";decay vtx y (cm)",             kTH1F, {{400,-100.,100.}});
+    ThreeBodyQARegistry.add("TrackQA/DecayVtxZ",          ";decay vtx z (cm)",             kTH1F, {{600,-300.,300.}});
+    ThreeBodyQARegistry.add("TrackQA/mKaon",              ";m_{K} (GeV/c^{2})",            kTH1F, {{200,0.40,0.60}});
+    ThreeBodyQARegistry.add("TrackQA/CascV0DCAtoPV",      ";V^{0} DCA to PV (cm)",         kTH1F, {{200, 0., 5.}});
+    ThreeBodyQARegistry.add("TrackQA/CascDaughDCA",       ";cascade daughter DCA (cm)",    kTH1F, {{200, 0., 5.}});
+    ThreeBodyQARegistry.add("TrackQA/CascTransRadius",    ";cascade transverse radius (cm)",kTH1F,{{200,0.,200.}});
+    ThreeBodyQARegistry.add("TrackQA/CascDecayVtxX",      ";cascade decay vtx x (cm)",     kTH1F, {{400,-100.,100.}});
+    ThreeBodyQARegistry.add("TrackQA/CascDecayVtxY",      ";cascade decay vtx y (cm)",     kTH1F, {{400,-100.,100.}});
+    ThreeBodyQARegistry.add("TrackQA/CascDecayVtxZ",      ";cascade decay vtx z (cm)",     kTH1F, {{600,-300.,300.}});
+    ThreeBodyQARegistry.add("TrackQA/mOmega",             ";m_{#Omega} (GeV/c^{2})",       kTH1F, {{200,1.60,1.80}});
+
+    // --- UPDATED: make all TPC/TOF signal & nσ → 2D vs pT (x: pT, y: variable) ---
+    // Choose pT range; here 0–4 GeV/c with 400 bins. Adjust as needed.
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TPCSignal",
+                            ";p_{T} (GeV/c);TPC signal (a.u.)",
+                            kTH2F, {{400, 0., 4.}, {400, -1000., 1000.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TPCnSigmaEl",
+                            ";p_{T} (GeV/c);n#sigma_{TPC}(e)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TPCnSigmaPi",
+                            ";p_{T} (GeV/c);n#sigma_{TPC}(#pi)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TPCnSigmaKa",
+                            ";p_{T} (GeV/c);n#sigma_{TPC}(K)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TPCnSigmaPr",
+                            ";p_{T} (GeV/c);n#sigma_{TPC}(p)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TPCnSigmaDe",
+                            ";p_{T} (GeV/c);n#sigma_{TPC}(d)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TPCnSigmaTr",
+                            ";p_{T} (GeV/c);n#sigma_{TPC}(t)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TPCnSigmaHe",
+                            ";p_{T} (GeV/c);n#sigma_{TPC}(^{3}He)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TOFnSigmaEl",
+                            ";p_{T} (GeV/c);n#sigma_{TOF}(e)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TOFnSigmaPi",
+                            ";p_{T} (GeV/c);n#sigma_{TOF}(#pi)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TOFnSigmaKa",
+                            ";p_{T} (GeV/c);n#sigma_{TOF}(K)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TOFnSigmaPr",
+                            ";p_{T} (GeV/c);n#sigma_{TOF}(p)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TOFnSigmaDe",
+                            ";p_{T} (GeV/c);n#sigma_{TOF}(d)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TOFnSigmaTr",
+                            ";p_{T} (GeV/c);n#sigma_{TOF}(t)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/pT_vs_TOFnSigmaHe",
+                            ";p_{T} (GeV/c);n#sigma_{TOF}(^{3}He)",
+                            kTH2F, {{400, 0., 4.}, {200, -10., 10.}});
+
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTPCPr_vs_TPCnSigmaEl",
+                            ";n#sigma_{TPC}(p);n#sigma_{TPC}(e)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTPCPr_vs_TPCnSigmaPi",
+                            ";n#sigma_{TPC}(p);n#sigma_{TPC}(#pi)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTPCPr_vs_TPCnSigmaKa",
+                            ";n#sigma_{TPC}(p);n#sigma_{TPC}(K)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTPCPr_vs_TPCnSigmaPr",
+                            ";n#sigma_{TPC}(p);n#sigma_{TPC}(p)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTPCPr_vs_TPCnSigmaDe",
+                            ";n#sigma_{TPC}(p);n#sigma_{TPC}(d)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTPCPr_vs_TPCnSigmaTr",
+                            ";n#sigma_{TPC}(p);n#sigma_{TPC}(t)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTPCPr_vs_TPCnSigmaHe",
+                            ";n#sigma_{TPC}(p);n#sigma_{TPC}(^{3}He)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTOFPr_vs_TOFnSigmaEl",
+                            ";n#sigma_{TOF}(p);n#sigma_{TOF}(e)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTOFPr_vs_TOFnSigmaPi",
+                            ";n#sigma_{TOF}(p);n#sigma_{TOF}(#pi)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTOFPr_vs_TOFnSigmaKa",
+                            ";n#sigma_{TOF}(p);n#sigma_{TOF}(K)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTOFPr_vs_TOFnSigmaPr",
+                            ";n#sigma_{TOF}(p);n#sigma_{TOF}(p)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTOFPr_vs_TOFnSigmaDe",
+                            ";n#sigma_{TOF}(p);n#sigma_{TOF}(d)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTOFPr_vs_TOFnSigmaTr",
+                            ";n#sigma_{TOF}(p);n#sigma_{TOF}(t)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
+    ThreeBodyQARegistry.add("TrackQA/nSigmaTOFPr_vs_TOFnSigmaHe",
+                            ";n#sigma_{TOF}(p);n#sigma_{TOF}(^{3}He)",
+                            kTH2F, {{200, -10., 10.}, {200, -10., 10.}});
+
 
     
 
@@ -278,11 +440,83 @@ struct femtoDreamTripletTaskTrackTrackTrack {
     for (auto& part : groupSelectedParts) {
       numberOfTracksPassingSelection = numberOfTracksPassingSelection + 1;
       trackHistoSelectedParts.fillQA<isMC, false>(part, aod::femtodreamparticle::kPt, multCol, centCol);
-      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCNClsFound"), part.tpcNClsFound());
-      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCNClsFindable"), part.tpcNClsFindable());
-      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCNClsCrossedRows"), part.tpcNClsCrossedRows());
-      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCNClsShared"), part.tpcNClsShared());
-      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCSignal"), part.pt(), part.tpcSignal());
+        
+        // ---------- 1D ----------
+      ThreeBodyQARegistry.fill(HIST("TrackQA/Sign"),                part.sign());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCNClsFound"),        part.tpcNClsFound());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCNClsFindable"),     part.tpcNClsFindable());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCNClsCrossedRows"),  part.tpcNClsCrossedRows());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCNClsShared"),       part.tpcNClsShared());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/TPCInnerParam"),       part.tpcInnerParam());
+
+      ThreeBodyQARegistry.fill(HIST("TrackQA/ITSNCls"),             part.itsNCls());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/ITSNClsIB"),           part.itsNClsInnerBarrel());
+
+      ThreeBodyQARegistry.fill(HIST("TrackQA/DCAxy"),               part.dcaXY());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/DCAz"),                part.dcaZ());
+
+      ThreeBodyQARegistry.fill(HIST("TrackQA/ITSSignal"),           part.itsSignal());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/ITSnSigmaEl"),         part.itsNSigmaEl());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/ITSnSigmaPi"),         part.itsNSigmaPi());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/ITSnSigmaKa"),         part.itsNSigmaKa());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/ITSnSigmaPr"),         part.itsNSigmaPr());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/ITSnSigmaDe"),         part.itsNSigmaDe());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/ITSnSigmaTr"),         part.itsNSigmaTr());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/ITSnSigmaHe"),         part.itsNSigmaHe());
+
+      ThreeBodyQARegistry.fill(HIST("TrackQA/DaughDCA"),            part.daughDCA());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/TransRadius"),         part.transRadius());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/DecayVtxX"),           part.decayVtxX());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/DecayVtxY"),           part.decayVtxY());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/DecayVtxZ"),           part.decayVtxZ());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/mKaon"),               part.mKaon());
+
+      ThreeBodyQARegistry.fill(HIST("TrackQA/CascV0DCAtoPV"),       part.cascV0DCAtoPV());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/CascDaughDCA"),        part.cascDaughDCA());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/CascTransRadius"),     part.cascTransRadius());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/CascDecayVtxX"),       part.cascDecayVtxX());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/CascDecayVtxY"),       part.cascDecayVtxY());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/CascDecayVtxZ"),       part.cascDecayVtxZ());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/mOmega"),              part.mOmega());
+
+      // ---------- 2D vs pT: TPC signal & nσ ----------
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TPCSignal"),     part.pt(), part.tpcSignal());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TPCnSigmaEl"),   part.pt(), part.tpcNSigmaEl());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TPCnSigmaPi"),   part.pt(), part.tpcNSigmaPi());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TPCnSigmaKa"),   part.pt(), part.tpcNSigmaKa());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TPCnSigmaPr"),   part.pt(), part.tpcNSigmaPr());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TPCnSigmaDe"),   part.pt(), part.tpcNSigmaDe());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TPCnSigmaTr"),   part.pt(), part.tpcNSigmaTr());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TPCnSigmaHe"),   part.pt(), part.tpcNSigmaHe());
+
+      // ---------- 2D vs pT: TOF nσ ----------
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TOFnSigmaEl"),   part.pt(), part.tofNSigmaEl());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TOFnSigmaPi"),   part.pt(), part.tofNSigmaPi());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TOFnSigmaKa"),   part.pt(), part.tofNSigmaKa());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TOFnSigmaPr"),   part.pt(), part.tofNSigmaPr());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TOFnSigmaDe"),   part.pt(), part.tofNSigmaDe());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TOFnSigmaTr"),   part.pt(), part.tofNSigmaTr());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/pT_vs_TOFnSigmaHe"),   part.pt(), part.tofNSigmaHe());
+
+      // ---------- 2D: TPC nσ (x = proton nσ, y = other particle nσ) ----------
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTPCPr_vs_TPCnSigmaEl"),  part.tpcNSigmaPr(), part.tpcNSigmaEl());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTPCPr_vs_TPCnSigmaPi"),  part.tpcNSigmaPr(), part.tpcNSigmaPi());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTPCPr_vs_TPCnSigmaKa"),  part.tpcNSigmaPr(), part.tpcNSigmaKa());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTPCPr_vs_TPCnSigmaPr"),  part.tpcNSigmaPr(), part.tpcNSigmaPr());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTPCPr_vs_TPCnSigmaDe"),  part.tpcNSigmaPr(), part.tpcNSigmaDe());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTPCPr_vs_TPCnSigmaTr"),  part.tpcNSigmaPr(), part.tpcNSigmaTr());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTPCPr_vs_TPCnSigmaHe"),  part.tpcNSigmaPr(), part.tpcNSigmaHe());
+
+      // ---------- 2D: TOF nσ (x = proton nσ, y = other particle nσ) ----------
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTOFPr_vs_TOFnSigmaEl"),  part.tofNSigmaPr(), part.tofNSigmaEl());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTOFPr_vs_TOFnSigmaPi"),  part.tofNSigmaPr(), part.tofNSigmaPi());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTOFPr_vs_TOFnSigmaKa"),  part.tofNSigmaPr(), part.tofNSigmaKa());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTOFPr_vs_TOFnSigmaPr"),  part.tofNSigmaPr(), part.tofNSigmaPr());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTOFPr_vs_TOFnSigmaDe"),  part.tofNSigmaPr(), part.tofNSigmaDe());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTOFPr_vs_TOFnSigmaTr"),  part.tofNSigmaPr(), part.tofNSigmaTr());
+      ThreeBodyQARegistry.fill(HIST("TrackQA/nSigmaTOFPr_vs_TOFnSigmaHe"),  part.tofNSigmaPr(), part.tofNSigmaHe());
+
+
     }
     ThreeBodyQARegistry.fill(HIST("TripletTaskQA/NumberOfTacksPassingSelection"), numberOfTracksPassingSelection);
 
@@ -371,7 +605,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
     }
     doSameEvent<false>(thegroupSelectedParts, parts, col.magField(), col.multNtr(), col.multV0M());
   }
-  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrack, processSameEvent, "Enable processing same event", true);
+  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrackDebug, processSameEvent, "Enable processing same event", true);
 
   /// process function to call doSameEvent with Data which has a mask for containing particles or not
   /// \param col subscribe to the collision table (Data)
@@ -388,7 +622,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
     }
     doSameEvent<false>(thegroupSelectedParts, parts, col.magField(), col.multNtr(), col.multV0M());
   }
-  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrack, processSameEventMasked, "Enable processing same event with masks", false);
+  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrackDebug, processSameEventMasked, "Enable processing same event with masks", false);
 
   /// process function for to call doSameEvent with Monte Carlo
   /// \param col subscribe to the collision table (Monte Carlo Reconstructed reconstructed)
@@ -410,7 +644,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
     }
     doSameEvent<true>(thegroupSelectedParts, parts, col.magField(), col.multNtr(), col.multV0M());
   }
-  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrack, processSameEventMC, "Enable processing same event for Monte Carlo", false);
+  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrackDebug, processSameEventMC, "Enable processing same event for Monte Carlo", false);
 
   /// process function for to call doSameEvent with Monte Carlo which has a mask for containing particles or not
   /// \param col subscribe to the collision table (Monte Carlo Reconstructed reconstructed)
@@ -432,7 +666,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
     }
     doSameEvent<true>(thegroupSelectedParts, parts, col.magField(), col.multNtr(), col.multV0M());
   }
-  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrack, processSameEventMCMasked, "Enable processing same event for Monte Carlo", false);
+  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrackDebug, processSameEventMCMasked, "Enable processing same event for Monte Carlo", false);
 
   /// This function processes the mixed event
   /// \tparam PartitionType
@@ -507,12 +741,12 @@ struct femtoDreamTripletTaskTrackTrackTrack {
       doMixedEvent<false>(groupPartsOne, groupPartsTwo, groupPartsThree, parts, magFieldTesla1, multiplicityCol);
     }
   }
-  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrack, processMixedEvent, "Enable processing mixed events", true);
+  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrackDebug, processMixedEvent, "Enable processing mixed events", true);
 
   /// process function for to call doMixedEvent with Data which has a mask for containing particles or not
   /// @param cols subscribe to the collisions table (Data)
   /// @param parts subscribe to the femtoDreamParticleTable
-  void processMixedEventMasked(MaskedCollisions& cols, osoa::Join<o2::aod::FDParticles, o2::aod::FDExtParticles>& parts)
+  void processMixedEventMasked(MaskedCollisions& cols, soa::Join<o2::aod::FDParticles, o2::aod::FDExtParticles>& parts)
   {
     Partition<MaskedCollisions> PartitionMaskedCol1 = (ConfTracksInMixedEvent == 1 && (aod::femtodreamcollision::bitmaskTrackOne & MaskBit) == MaskBit) ||
                                                       (ConfTracksInMixedEvent == 2 && (aod::femtodreamcollision::bitmaskTrackTwo & MaskBit) == MaskBit) ||
@@ -539,7 +773,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
       doMixedEvent<false>(groupPartsOne, groupPartsTwo, groupPartsThree, parts, magFieldTesla1, multiplicityCol);
     }
   }
-  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrack, processMixedEventMasked, "Enable processing mixed events", false);
+  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrackDebug, processMixedEventMasked, "Enable processing mixed events", false);
 
   /// brief process function for to call doMixedEvent with Monte Carlo
   /// @param cols subscribe to the collisions table (Monte Carlo Reconstructed reconstructed)
@@ -570,7 +804,7 @@ struct femtoDreamTripletTaskTrackTrackTrack {
       doMixedEvent<true>(groupPartsOne, groupPartsTwo, groupPartsThree, parts, magFieldTesla1, multiplicityCol);
     }
   }
-  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrack, processMixedEventMC, "Enable processing mixed events MC", false);
+  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrackDebug, processMixedEventMC, "Enable processing mixed events MC", false);
 
   /// brief process function for to call doMixedEvent with Monte Carlo which has a mask for containing particles or not
   /// @param cols subscribe to the collisions table (Monte Carlo Reconstructed reconstructed)
@@ -607,13 +841,13 @@ struct femtoDreamTripletTaskTrackTrackTrack {
       doMixedEvent<true>(groupPartsOne, groupPartsTwo, groupPartsThree, parts, magFieldTesla1, multiplicityCol);
     }
   }
-  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrack, processMixedEventMCMasked, "Enable processing mixed events MC", false);
+  PROCESS_SWITCH(femtoDreamTripletTaskTrackTrackTrackDebug, processMixedEventMCMasked, "Enable processing mixed events MC", false);
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<femtoDreamTripletTaskTrackTrackTrack>(cfgc),
+    adaptAnalysisTask<femtoDreamTripletTaskTrackTrackTrackDebug>(cfgc),
   };
   return workflow;
 }
